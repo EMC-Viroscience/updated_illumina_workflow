@@ -5,7 +5,6 @@ import multiprocessing
 import datetime
 
 # Define the output folder dynamically based on current day and month.
-#OUTPUT_FOLDER = "processed_" + datetime.datetime.now().strftime("%d%m%y")
 OUTPUT_FOLDER = config.get("OUTPUT_FOLDER", f"processed_{datetime.datetime.now().strftime('%d%m%y')}")
 
 # Get the total number of cores specified when launching snakemake
@@ -18,9 +17,9 @@ rule all:
     input:
         expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/contigs.fasta", zip, run=RUNS, sample=SAMPLES),
         expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_bam_stat.tsv", zip, run=RUNS, sample=SAMPLES),
-        expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_raw.tsv", zip, run=RUNS, sample=SAMPLES),
-        expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_dedup_qc.tsv", zip, run=RUNS, sample=SAMPLES),
-        expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_filtered.tsv", zip, run=RUNS, sample=SAMPLES),
+        # expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_raw.tsv", zip, run=RUNS, sample=SAMPLES),
+        # expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_dedup_qc.tsv", zip, run=RUNS, sample=SAMPLES),
+        # expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_filtered.tsv", zip, run=RUNS, sample=SAMPLES),
         expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{run}}_{{sample}}_read_processing_stats_clean.tsv", zip, run=RUNS, sample=SAMPLES),
         expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/renamed_completed_{{sample}}_annotation.tsv", zip, run=RUNS, sample=SAMPLES),
         expand(f"{OUTPUT_FOLDER}/{{run}}/annotations/renamed/renamed_completed_{{sample}}_annotation.tsv", zip, run=RUNS, sample=SAMPLES)
@@ -98,8 +97,8 @@ rule assemble_filtered:
         S  = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_S.fastq.gz"
     output:
         assembled_contigs    = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/contigs.fasta",
-        renamed_contigs      = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/{{run}}_{{sample}}_contigs.fasta",
-        fil_renamed_contigs  = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/fil_{{run}}_{{sample}}_contigs.fasta"
+        renamed_contigs      = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/{{run}}_{{sample}}_contigs.fasta"
+        #fil_renamed_contigs  = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/fil_{{run}}_{{sample}}_contigs.fasta"
     params:
         spades_folder = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly"
     threads: max(16, round(total_cores / 4))
@@ -118,13 +117,16 @@ rule assemble_filtered:
         # Append the filename to the beginning of each contig
         sed "s/^>/>{wildcards.run}_{wildcards.sample}|/" {output.assembled_contigs} > {output.renamed_contigs}
 
-        python /home/r061231/scripts/upper_FastaMLtoSL.py {output.renamed_contigs}
-        mv {output.renamed_contigs}_SL.fa {output.renamed_contigs}
+        # python /home/r061231/scripts/upper_FastaMLtoSL.py {output.renamed_contigs}
+        python multiL_fasta_2singleL.py {output.renamed_contigs}
+        mv {output.renamed_contigs}_SL {output.renamed_contigs}
 
-        seqkit seq -g -m 250 {output.renamed_contigs} > {output.fil_renamed_contigs}
-        python /home/r061231/scripts/upper_FastaMLtoSL.py {output.fil_renamed_contigs}
-        mv SL_{output.fil_renamed_contigs} {output.fil_renamed_contigs}
+        # seqkit seq -g -m 250 {output.renamed_contigs} > {output.fil_renamed_contigs}
+        # # python /home/r061231/scripts/upper_FastaMLtoSL.py {output.fil_renamed_contigs}
+        # python v3_multiL_fasta_2singleL.py {output.fil_renamed_contigs}
+        # mv {output.fil_renamed_contigs}_SL {output.fil_renamed_contigs}
         """
+
 #de novo assembly of contigs
 #file with forward paired-end reads + file with reverse paired end reads
 # -s file with unpaired reads
@@ -136,8 +138,6 @@ rule blastx_assembled:
     output:
         f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/{{sample}}_annotation.tsv"
     threads: max(16, round(total_cores / 3))
-    # resources:
-    #     mem_gb = round(total_memory//3)  # Specify the amount of memory in GB, adjust accordingly
     shell:
         """
         set -euo pipefail
@@ -253,61 +253,59 @@ rule store_completed_annotation_files:
         """
         set -euo pipefail
 
-        # Extract the sample number before '_S' and prepend 'bc'
-        # sample_number=$(echo {wildcards.sample} | awk -F'_S' '{{print "bc"$1}}')
-
         # ```sed "1 ! s/^/``` skip the first line, and then insert at the beginning of each line
         sed "1!s/^/{wildcards.run}_{wildcards.sample}|/" {input} > {output.renamed_completed}
 
         # # Copy files for easier access
-        cp $(realpath {input}) {output.ln_completed}
-        cp $(realpath {output.renamed_completed}) {output.ln_renamed_completed}
+        cp {input} {output.ln_completed}
+        cp {output.renamed_completed} {output.ln_renamed_completed}
 
         # # For easier access, create symbolic links instead of copying files
         # ln -s $(realpath {input}) {output.ln_completed}
         # ln -s $(realpath {output.renamed_completed}) {output.ln_renamed_completed}
-        # # Remove temp files associated with the sample
-        # rm -f {wildcards.run}_{wildcards.sample}*
-        # rm -f {wildcards.sample}*
+
+        # Remove temp files associated with the sample
+        rm -f {wildcards.run}_{wildcards.sample}*
+        rm -f {wildcards.sample}*
         """
 
-rule raw_stats:
-    input:
-        r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R1.fastq.gz",
-        r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R2.fastq.gz"
-    output:
-        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_raw.tsv"
-    shell:
-        """
-        set -euo pipefail
-        seqkit stats {input.r1} {input.r2} | awk 'FNR==1 && NR!=1{{next}}{{print}}' > {output}
-        """
-        # ``` awk 'FNR==1 && NR!=1{{next}}{{print}}' ```
-        # command skips the first line of all files after the first file when concatenating multiple files, effectively removing repeated headers.
-
-rule dedup_qc_stats:
-    input:
-        r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R1.fastq.gz",
-        r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R2.fastq.gz"
-    output:
-        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_dedup_qc.tsv"
-    shell:
-        """
-        set -euo pipefail
-        seqkit stats {input.r1} {input.r2} | awk 'FNR==1 && NR!=1{{next}}{{print}}' > {output}
-        """
-
-rule filtered_stats:
-    input:
-        r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R1.fastq.gz",
-        r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R2.fastq.gz"
-    output:
-        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_filtered.tsv"
-    shell:
-        """
-        set -euo pipefail
-        seqkit stats {input.r1} {input.r2} | awk 'FNR==1 && NR!=1{{next}}{{print}}' > {output}
-        """
+# rule raw_stats:
+#     input:
+#         r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R1.fastq.gz",
+#         r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R2.fastq.gz"
+#     output:
+#         f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_raw.tsv"
+#     shell:
+#         """
+#         set -euo pipefail
+#         seqkit stats {input.r1} {input.r2} | awk 'FNR==1 && NR!=1{{next}}{{print}}' > {output}
+#         """
+#         # ``` awk 'FNR==1 && NR!=1{{next}}{{print}}' ```
+#         # command skips the first line of all files after the first file when concatenating multiple files, effectively removing repeated headers.
+#
+# rule dedup_qc_stats:
+#     input:
+#         r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R1.fastq.gz",
+#         r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R2.fastq.gz"
+#     output:
+#         f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_dedup_qc.tsv"
+#     shell:
+#         """
+#         set -euo pipefail
+#         seqkit stats {input.r1} {input.r2} | awk 'FNR==1 && NR!=1{{next}}{{print}}' > {output}
+#         """
+#
+# rule filtered_stats:
+#     input:
+#         r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R1.fastq.gz",
+#         r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R2.fastq.gz"
+#     output:
+#         f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_filtered.tsv"
+#     shell:
+#         """
+#         set -euo pipefail
+#         seqkit stats {input.r1} {input.r2} | awk 'FNR==1 && NR!=1{{next}}{{print}}' > {output}
+#         """
 
 rule seqkit_stat:
     input:
