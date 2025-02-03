@@ -2,6 +2,11 @@
 # updated the "illumina workflow" developed by Nathalie Worp and David Nieuwenhuisje
 
 import multiprocessing
+import datetime
+
+# Define the output folder dynamically based on current day and month.
+#OUTPUT_FOLDER = "processed_" + datetime.datetime.now().strftime("%d%m%y")
+OUTPUT_FOLDER = config.get("OUTPUT_FOLDER", f"processed_{datetime.datetime.now().strftime('%d%m%y')}")
 
 # Get the total number of cores specified when launching snakemake
 total_cores = workflow.cores
@@ -11,22 +16,23 @@ RUNS, SAMPLES = glob_wildcards("raw_data/{run}/{sample}_R1_001.fastq.gz")
 
 rule all:
     input:
-        expand("processed_0209/{run}/{sample}/assembly/contigs.fasta", zip, run=RUNS, sample=SAMPLES),
-        expand("processed_0209/{run}/{sample}/summary/{sample}_bam_stat.tsv", zip, run=RUNS, sample=SAMPLES),
-        expand("processed_0209/{run}/{sample}/summary/{sample}_readstats_raw.tsv", zip, run=RUNS, sample=SAMPLES),
-        expand("processed_0209/{run}/{sample}/summary/{sample}_readstats_dedup_qc.tsv", zip, run=RUNS, sample=SAMPLES),
-        expand("processed_0209/{run}/{sample}/summary/{sample}_readstats_filtered.tsv", zip, run=RUNS, sample=SAMPLES),
-        expand("processed_0209/{run}/{sample}/summary/{run}_{sample}_read_processing_stats_clean.tsv", zip, run=RUNS, sample=SAMPLES),
-        expand("processed_0209/{run}/{sample}/renamed_completed_{sample}_annotation.tsv", zip, run=RUNS, sample=SAMPLES),
-        expand("processed_0209/{run}/annotations/renamed/renamed_completed_{sample}_annotation.tsv", zip, run=RUNS, sample=SAMPLES)
+        expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/contigs.fasta", zip, run=RUNS, sample=SAMPLES),
+        expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_bam_stat.tsv", zip, run=RUNS, sample=SAMPLES),
+        expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_raw.tsv", zip, run=RUNS, sample=SAMPLES),
+        expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_dedup_qc.tsv", zip, run=RUNS, sample=SAMPLES),
+        expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_filtered.tsv", zip, run=RUNS, sample=SAMPLES),
+        expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{run}}_{{sample}}_read_processing_stats_clean.tsv", zip, run=RUNS, sample=SAMPLES),
+        expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/renamed_completed_{{sample}}_annotation.tsv", zip, run=RUNS, sample=SAMPLES),
+        expand(f"{OUTPUT_FOLDER}/{{run}}/annotations/renamed/renamed_completed_{{sample}}_annotation.tsv", zip, run=RUNS, sample=SAMPLES)
+        #expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/.announced", run=RUNS, sample=SAMPLES) # optionally, include a dummy file created by announce_completed_annotation
 
 rule softlink_raw:
     input:
         R1 = "raw_data/{run}/{sample}_R1_001.fastq.gz",
         R2 = "raw_data/{run}/{sample}_R2_001.fastq.gz"
     output:
-        R1 = "processed_0209/{run}/{sample}/raw/{run}_{sample}_R1.fastq.gz",
-        R2 = "processed_0209/{run}/{sample}/raw/{run}_{sample}_R2.fastq.gz"
+        R1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R1.fastq.gz",
+        R2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R2.fastq.gz"
     shell:
         """
         set -euo pipefail
@@ -40,10 +46,10 @@ rule QC_after_dedup:
         R1 = "raw_data/{run}/{sample}_R1_001.fastq.gz",
         R2 = "raw_data/{run}/{sample}_R2_001.fastq.gz"
     output:
-        R1 = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_R1.fastq.gz",
-        R2 = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_R2.fastq.gz",
-        S = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_S.fastq.gz",
-        failed = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_fail.fastq.gz"
+        R1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R1.fastq.gz",
+        R2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R2.fastq.gz",
+        S  = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_S.fastq.gz",
+        failed = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_fail.fastq.gz"
     threads: max(4, round(total_cores / 4))
     shell:
         """
@@ -56,23 +62,19 @@ rule QC_after_dedup:
         --cut_right \
         --cut_right_window_size 6 \
         --cut_right_mean_quality 20 \
-        -j processed_0209/{wildcards.run}/{wildcards.sample}/dedup_qc/{wildcards.run}_{wildcards.sample}_qc_report.json \
-        -h processed_0209/{wildcards.run}/{wildcards.sample}/dedup_qc/{wildcards.run}_{wildcards.sample}_qc_report.html
+        -j {OUTPUT_FOLDER}/{wildcards.run}/{wildcards.sample}/dedup_qc/{wildcards.run}_{wildcards.sample}_qc_report.json \
+        -h {OUTPUT_FOLDER}/{wildcards.run}/{wildcards.sample}/dedup_qc/{wildcards.run}_{wildcards.sample}_qc_report.html
         """
-
-# changed FROM -> -l 30 -Q -y --cut_right_window_size 5 --cut_right_mean_quality 25 \
-# for PE input, if read1 passed QC but read2 not, it will be written to unpaired1. Default is to discard it.
-# so file S contains reads. If --unpaired2 is same as --unpaired1 (default mode), both unpaired reads will be written to this same file. (string [=])
 
 rule filter_human:
     input:
-        R1 = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_R1.fastq.gz",
-        R2 = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_R2.fastq.gz",
-        S = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_S.fastq.gz"
+        R1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R1.fastq.gz",
+        R2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R2.fastq.gz",
+        S  = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_S.fastq.gz"
     output:
-        R1 = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_R1.fastq.gz",
-        R2 = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_R2.fastq.gz",
-        S = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_S.fastq.gz"
+        R1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R1.fastq.gz",
+        R2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R2.fastq.gz",
+        S  = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_S.fastq.gz"
     threads: max(4, round(total_cores / 4))
     shell:
         """
@@ -89,16 +91,17 @@ rule filter_human:
 #-s option: If a singleton file is specified using the -s option then only paired sequences will be output for categories 1 and 2; paired meaning that for a given QNAME there are sequences for both category 1 and 2. If there is a sequence for only one of categories 1 or 2 then it will be diverted into the specified singletons file. This can be used to prepare fastq files for programs that cannot handle a mixture of paired and singleton reads.
 
 rule assemble_filtered:
+    priority: 1
     input:
-        R1 = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_R1.fastq.gz",
-        R2 = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_R2.fastq.gz",
-        S = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_S.fastq.gz"
+        R1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R1.fastq.gz",
+        R2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R2.fastq.gz",
+        S  = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_S.fastq.gz"
     output:
-        assembled_contigs = "processed_0209/{run}/{sample}/assembly/contigs.fasta",
-        renamed_contigs = "processed_0209/{run}/{sample}/assembly/{run}_{sample}_contigs.fasta",
-        fil_renamed_contigs = "processed_0209/{run}/{sample}/assembly/fil_{run}_{sample}_contigs.fasta"
+        assembled_contigs    = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/contigs.fasta",
+        renamed_contigs      = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/{{run}}_{{sample}}_contigs.fasta",
+        fil_renamed_contigs  = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/fil_{{run}}_{{sample}}_contigs.fasta"
     params:
-        spades_folder = "processed_0209/{run}/{sample}/assembly"
+        spades_folder = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly"
     threads: max(16, round(total_cores / 4))
     shell:
         """
@@ -120,20 +123,21 @@ rule assemble_filtered:
 
         seqkit seq -g -m 250 {output.renamed_contigs} > {output.fil_renamed_contigs}
         python /home/r061231/scripts/upper_FastaMLtoSL.py {output.fil_renamed_contigs}
-        mv {output.fil_renamed_contigs}_SL.fa {output.fil_renamed_contigs}
+        mv SL_{output.fil_renamed_contigs} {output.fil_renamed_contigs}
         """
 #de novo assembly of contigs
 #file with forward paired-end reads + file with reverse paired end reads
 # -s file with unpaired reads
 
 rule blastx_assembled:
+    priority: 2
     input:
-        "processed_0209/{run}/{sample}/assembly/contigs.fasta"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/contigs.fasta"
     output:
-        "processed_0209/{run}/{sample}/{sample}_annotation.tsv"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/{{sample}}_annotation.tsv"
     threads: max(16, round(total_cores / 3))
-    resources:
-        mem_gb=round(360//3)  # Specify the amount of memory in GB, adjust accordingly
+    # resources:
+    #     mem_gb = round(total_memory//3)  # Specify the amount of memory in GB, adjust accordingly
     shell:
         """
         set -euo pipefail
@@ -153,47 +157,46 @@ rule blastx_assembled:
 # map reads back to the assembled contigs; needed to calculate the depth per position, mean coverage per contig etc
 rule map_reads_to_contigs:
     input:
-        R1 = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_R1.fastq.gz",
-        R2 = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_R2.fastq.gz",
-        S = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_S.fastq.gz",
-        contigs = "processed_0209/{run}/{sample}/assembly/contigs.fasta"
+        R1      = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R1.fastq.gz",
+        R2      = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R2.fastq.gz",
+        S       = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_S.fastq.gz",
+        contigs = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/contigs.fasta"
+        # Removed index_marker dependency because rule index_contigs is removed
     params:
-        tmp_paired = temp("{sample}_paired.tmp"),
+        tmp_paired   = temp("{sample}_paired.tmp"),
         tmp_singlets = temp("{sample}_singlets.tmp")
     output:
-        bam = "processed_0209/{run}/{sample}/mappings/{sample}_mappings.bam"
+        bam = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/mappings/{{sample}}_mappings.bam"
     threads: max(4, round(total_cores / 4))
     shell:
         """
         set -euo pipefail
 
-        bwa-mem2 index {input.contigs}
         bwa-mem2 mem -Y -t {threads} {input.contigs} {input.R1} {input.R2} | samtools view -b - | samtools sort -o {params.tmp_paired}
         bwa-mem2 mem -Y -t {threads} {input.contigs} {input.S} | samtools view -b - | samtools sort -o {params.tmp_singlets}
         samtools merge {output.bam} {params.tmp_paired} {params.tmp_singlets}
         """
 
-# stores the depth at each contig position, for all contigs
 rule create_coverage_file:
     input:
-        "processed_0209/{run}/{sample}/mappings/{sample}_mappings.bam"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/mappings/{{sample}}_mappings.bam"
     output:
-        "processed_0209/{run}/{sample}/{sample}_coverage.txt"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/{{sample}}_coverage.txt"
     threads: 1
     shell:
         """
         set -euo pipefail
         samtools view -bF2052 {input} | samtools depth -a -d 0 - > {output}
         """
-# -b: output in de bam format, -F2025 Do no2 output alignments with any bits set in INT present in the FLAG field. INT = 2025 and means that alignments that are not mapped are not outputted.
-#samtools depth: Computes the depth at each position or region. -a Output all positions (including those with zero depth) -d
-# -d 0:  read at most 0 (INT) reads per input file. This means figures greater than INT may be reported in the output.Setting this limit reduces the amount of memory and time needed to process regions with very high coverage. Passing zero for this option sets it to the highest possible value, effectively removing the depth limit.
+# -b: output in de bam format, -F2052 Do not output alignments with any bits set in INT present in the FLAG field. INT = 2052 means that alignments that are not mapped are not outputted.
+# samtools depth: Computes the depth at each position or region. -a outputs all positions (including those with zero depth) -d
+# -d 0: read at most 0 reads per input file. This means figures greater than 0 may be reported in the output. Setting this limit reduces the amount of memory and time needed to process regions with very high coverage. Passing zero for this option sets it to the highest possible value, effectively removing the depth limit.
 
 rule create_readmap_file:
     input:
-        "processed_0209/{run}/{sample}/mappings/{sample}_mappings.bam"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/mappings/{{sample}}_mappings.bam"
     output:
-        "processed_0209/{run}/{sample}/mappings/{sample}_readmap.txt"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/mappings/{{sample}}_readmap.txt"
     shell:
         """
         set -euo pipefail
@@ -203,10 +206,9 @@ rule create_readmap_file:
 
 rule stat_mapped_files:
     input:
-        "processed_0209/{run}/{sample}/mappings/{sample}_mappings.bam"
-
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/mappings/{{sample}}_mappings.bam"
     output:
-        "processed_0209/{run}/{sample}/summary/{sample}_bam_stat.tsv"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_bam_stat.tsv"
     shell:
         """
         set -euo pipefail
@@ -216,22 +218,37 @@ rule stat_mapped_files:
 # combine all the classification and coverage results to create summary tables
 rule merge_results:
     input:
-        annotation = "processed_0209/{run}/{sample}/{sample}_annotation.tsv",
-        coverage = "processed_0209/{run}/{sample}/{sample}_coverage.txt",
-        readmap = "processed_0209/{run}/{sample}/mappings/{sample}_readmap.txt"
+        annotation = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/{{sample}}_annotation.tsv",
+        coverage   = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/{{sample}}_coverage.txt",
+        readmap    = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/mappings/{{sample}}_readmap.txt"
     output:
-        "processed_0209/{run}/{sample}/completed_{sample}_annotation.tsv"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/completed_{{sample}}_annotation.tsv"
     script:
         "/mnt/scratch2/ww_virome_capture_longitudinal/merge_results.R"
+
+
+# rule announce_completed_annotation:
+#     input:
+#         completed = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/completed_{{sample}}_annotation.tsv"
+#     output:
+#         announced = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/.announced"
+#     run:
+#         from datetime import datetime
+#         date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+#         print(f"{input.completed} is finished classification at {date_str}")
+#         # create a dummy file to signal completion
+#         with open(output.announced, "w") as f:
+#             f.write("Announced\n")
+#
 
 # create links to all the "completed*" classification tables per sample, to a central location per run
 rule store_completed_annotation_files:
     input:
-        "processed_0209/{run}/{sample}/completed_{sample}_annotation.tsv"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/completed_{{sample}}_annotation.tsv"
     output:
-        renamed_completed = "processed_0209/{run}/{sample}/renamed_completed_{sample}_annotation.tsv",
-        ln_completed = "processed_0209/{run}/annotations/completed_{sample}_annotation.tsv",
-        ln_renamed_completed = "processed_0209/{run}/annotations/renamed/renamed_completed_{sample}_annotation.tsv"
+        renamed_completed    = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/renamed_completed_{{sample}}_annotation.tsv",
+        ln_completed         = f"{OUTPUT_FOLDER}/{{run}}/annotations/completed_{{sample}}_annotation.tsv",
+        ln_renamed_completed = f"{OUTPUT_FOLDER}/{{run}}/annotations/renamed/renamed_completed_{{sample}}_annotation.tsv"
     shell:
         """
         set -euo pipefail
@@ -240,11 +257,11 @@ rule store_completed_annotation_files:
         # sample_number=$(echo {wildcards.sample} | awk -F'_S' '{{print "bc"$1}}')
 
         # ```sed "1 ! s/^/``` skip the first line, and then insert at the beginning of each line
-        sed "1 ! s/^/{wildcards.run}_{wildcards.sample}|/" {input} > {output.renamed_completed}
+        sed "1!s/^/{wildcards.run}_{wildcards.sample}|/" {input} > {output.renamed_completed}
 
         # # Copy files for easier access
-        ln -s $(realpath {input}) {output.ln_completed}
-        ln -s $(realpath {output.renamed_completed}) {output.ln_renamed_completed}
+        cp $(realpath {input}) {output.ln_completed}
+        cp $(realpath {output.renamed_completed}) {output.ln_renamed_completed}
 
         # # For easier access, create symbolic links instead of copying files
         # ln -s $(realpath {input}) {output.ln_completed}
@@ -252,15 +269,14 @@ rule store_completed_annotation_files:
         # # Remove temp files associated with the sample
         # rm -f {wildcards.run}_{wildcards.sample}*
         # rm -f {wildcards.sample}*
-
         """
 
 rule raw_stats:
     input:
-        r1 = "processed_0209/{run}/{sample}/raw/{run}_{sample}_R1.fastq.gz",
-        r2 = "processed_0209/{run}/{sample}/raw/{run}_{sample}_R2.fastq.gz"
+        r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R1.fastq.gz",
+        r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R2.fastq.gz"
     output:
-        "processed_0209/{run}/{sample}/summary/{sample}_readstats_raw.tsv"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_raw.tsv"
     shell:
         """
         set -euo pipefail
@@ -271,10 +287,10 @@ rule raw_stats:
 
 rule dedup_qc_stats:
     input:
-        r1 = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_R1.fastq.gz",
-        r2 = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_R2.fastq.gz"
+        r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R1.fastq.gz",
+        r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R2.fastq.gz"
     output:
-        "processed_0209/{run}/{sample}/summary/{sample}_readstats_dedup_qc.tsv"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_dedup_qc.tsv"
     shell:
         """
         set -euo pipefail
@@ -283,10 +299,10 @@ rule dedup_qc_stats:
 
 rule filtered_stats:
     input:
-        r1 = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_R1.fastq.gz",
-        r2 = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_R2.fastq.gz"
+        r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R1.fastq.gz",
+        r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R2.fastq.gz"
     output:
-        "processed_0209/{run}/{sample}/summary/{sample}_readstats_filtered.tsv"
+        f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_filtered.tsv"
     shell:
         """
         set -euo pipefail
@@ -295,17 +311,17 @@ rule filtered_stats:
 
 rule seqkit_stat:
     input:
-        raw_R1 = "processed_0209/{run}/{sample}/raw/{run}_{sample}_R1.fastq.gz",
-        raw_R2 = "processed_0209/{run}/{sample}/raw/{run}_{sample}_R2.fastq.gz",
-        qc_dedup_R1 = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_R1.fastq.gz",
-        qc_dedup_R2 = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_R2.fastq.gz",
-        qc_dedup_S = "processed_0209/{run}/{sample}/dedup_qc/{run}_{sample}_S.fastq.gz",
-        fil_qc_dedup_R1 = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_R1.fastq.gz",
-        fil_qc_dedup_R2 = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_R2.fastq.gz",
-        fil_qc_dedup_S = "processed_0209/{run}/{sample}/filtered/{run}_{sample}_S.fastq.gz"
+        raw_R1          = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R1.fastq.gz",
+        raw_R2          = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R2.fastq.gz",
+        qc_dedup_R1     = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R1.fastq.gz",
+        qc_dedup_R2     = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R2.fastq.gz",
+        qc_dedup_S      = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_S.fastq.gz",
+        fil_qc_dedup_R1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R1.fastq.gz",
+        fil_qc_dedup_R2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R2.fastq.gz",
+        fil_qc_dedup_S  = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_S.fastq.gz"
     output:
-        combined_stats = "processed_0209/{run}/{sample}/summary/{run}_{sample}_read_processing_stats.tsv",
-        clean_combined_stats = "processed_0209/{run}/{sample}/summary/{run}_{sample}_read_processing_stats_clean.tsv"
+        combined_stats       = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{run}}_{{sample}}_read_processing_stats.tsv",
+        clean_combined_stats = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{run}}_{{sample}}_read_processing_stats_clean.tsv"
     shell:
         """
         set -euo pipefail

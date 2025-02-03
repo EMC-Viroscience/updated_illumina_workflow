@@ -1,17 +1,31 @@
-echo "\n##------START------##" >> log.txt
-date >> log.txt
-echo "" >> log.txt
+#!/bin/bash
 
-echo "running \`updated_illumina_workflow_241003.smk\` with 48 cores" >> log.txt;
-/usr/bin/time -o log.txt --append snakemake -s updated_illumina_workflow_241003.smk \
---rerun-triggers mtime --rerun-incomplete \
---cores 48 --resources mem_gb=480 \
---latency-wait 30 --max-jobs-per-second 2 --max-status-checks-per-second 4;
-date >> log.txt
+# Prompt user for cores and memory resources with defaults
+read -p "Enter number of cores (default 16): " cores
+cores=${cores:-16}
 
-# --rerun-triggers mtime
-# --latency-wait: Controls how long Snakemake waits for output files to appear after a job completes (helps with network or filesystem delays).
-# --max-jobs-per-second: Limits the rate at which Snakemake submits new jobs (prevents scheduler overload).
-# --max-status-checks-per-second: Limits how often Snakemake checks the status of running jobs (reduces load on the job scheduler).
+read -p "Enter memory in GB for resources (default 128): " mem_gb
+mem_gb=${mem_gb:-128}
 
-echo "\n##------END------##" >> log.txt
+# Print start information to the console
+echo "##------START------##"
+date
+echo ""
+
+# Note: The --rerun-triggers mtime option forces Snakemake to rerun jobs
+# if any input file has a modification time that is more recent than its output.
+echo "Running 'updated_illumina_workflow_241003.smk' with ${cores} cores and ${mem_gb} GB memory"
+
+# Execute the Snakemake workflow.
+# Standard output is discarded and only errors are appended to log.txt.
+# /usr/bin/time appends timing information to log.txt.
+usr_time="/usr/bin/time"
+${usr_time} -o log.txt --append snakemake -s updated_illumina_workflow_241003.smk \
+    --rerun-triggers mtime \  # Forces rerun if input files are updated
+    --rerun-incomplete \
+    --cores ${cores} --resources mem_gb=${mem_gb} \
+    --latency-wait 30 --max-jobs-per-second 2 --max-status-checks-per-second 4 \
+    > /dev/null 2>> log.txt
+
+date
+echo "##------END------##"
