@@ -23,8 +23,7 @@ set -euo pipefail  # Enable strict error handling
 #   Helps debug pipelines where errors might otherwise be ignored.
 
 # Get the current date in DDMMYY format
-var_date_time=$(date +%d%m%y)
-# $var_date_time is now ddmmyy
+var_date_time=$(date +%d%m%y) # $var_date_time is now ddmmyy
 
 # Define log file with timestamped name
 log_file="logging_${var_date_time}"
@@ -68,12 +67,10 @@ ${usr_time} -o "$log_file" --append \
 # ========================
 # optinal CONFIGURATIONS
 # ========================
-# --config OUTPUT_FOLDER="processed_${var_date_time}" \
-  # Specify the workflow file
-  # By default, Snakemake will set the output directory as "processed_ddmmyy"
+# --config OUTPUT_FOLDER="processed_mychoice" \
+  # Specify the workflow file, else by default, Snakemake will set the output directory as "processed_ddmmyy"
 # --config MIN_CONTIG_LEN="300"
   # If this config is not passed, the default is 250
-
 
 # Print end information to log file
 echo "##======WORKFLOW COMPLETED======##" | tee -a "$log_file"

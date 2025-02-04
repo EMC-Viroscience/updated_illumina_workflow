@@ -23,7 +23,7 @@ rule all:
         expand(f"{OUTPUT_FOLDER}/{{run}}/annotations/renamed/renamed_completed_{{sample}}_annotation.tsv", zip, run=RUNS, sample=SAMPLES)
         #expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/.announced", run=RUNS, sample=SAMPLES) # optionally, include a dummy file created by announce_completed_annotation
 
-rule softlink_raw:
+rule hardlink_raw:
     input:
         R1 = "raw_data/{run}/{sample}_R1_001.fastq.gz",
         R2 = "raw_data/{run}/{sample}_R2_001.fastq.gz"
