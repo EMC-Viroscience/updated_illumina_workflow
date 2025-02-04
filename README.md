@@ -1,30 +1,30 @@
-# Illumina Workflow for Metagenomic Data Processing
+## Illumina Workflow for Metagenomic Data Processing
 
 **Adapted by:** [Divyae Kishore Prasad](https://github.com/divprasad/)  
 **Original workflow by:** Nathalie Worp and David Nieuwenhuisje  
 **Development period:** Jul'24–Feb'25  
 
 
-## Overview
+### Overview
 
 This repository contains a Snakemake workflow for processing Illumina sequencing data, optimized and validated for metagenomics. The end-to-end workflow, `up_illumina_wf_snakefile.smk`, includes steps to process raw reads into taxonomic annotation: quality control, human read filtering, de novo assembly, annotation, and result summarization. The Snakefile is designed to be resource-aware, modular, and easy to configure, with outputs dynamically organized based on the current date.  
 
 
-## Workflow
+### Workflow breakdown: from raw reads to annotation
 
-1. **Dynamic Output Folder & raw data linking**  
+1. **Dynamic output folder & raw data linking**  
    - Feature: Automatically creates an output folder named based on the current date (e.g., `processed_ddmmyy`).  
    - Step (`hardlink_raw`): Hard-links or copies raw FASTQ files from `raw_data/`. The dynamically generated folder ensures easy data management.
 
-2. **Quality control & Deduplication**  
+2. **Quality control & deduplication**  
    - Feature: Uses [fastp](https://github.com/OpenGene/fastp) to perform both quality trimming and deduplication in a single run.  
    - Step (`QC_after_dedup`): Generates cleaned, deduplicated reads, and provides an HTML/JSON report detailing quality metrics.
 
 3. **Human read filtering**  
-   - Feature:** Removes (background contaminating) human reads by aligning against the human reference genome with [bwa-mem2](https://github.com/bwa-mem2/bwa-mem2), then uses [samtools](http://www.htslib.org/) to retain only unmapped reads.  
+   - Feature: Removes (background contaminating) human reads by aligning against the human reference genome with [bwa-mem2](https://github.com/bwa-mem2/bwa-mem2), then uses [samtools](http://www.htslib.org/) to retain only unmapped reads.  
    - Step (`filter_human`): Generates filtered reads free of host contamination to improve downstream assembly and annotation accuracy.
 
-4. **De Novo Assembly**  
+4. **De novo assembly**  
    - Feature: Assembles filtered reads using [metaSPAdes](https://cab.spbu.ru/software/spades/), optimized for metagenomic data.  
    - Step (`assemble_filtered`): Generates assembled contigs; includes post-processing such as renaming contigs to include run and barcode information for clarity and converting multi-line FASTA to single-line FASTA.
 
@@ -32,19 +32,19 @@ This repository contains a Snakemake workflow for processing Illumina sequencing
    - Feature: Runs high-speed homology searches with [DIAMOND BLASTX](https://github.com/bbuchfink/diamond) (e-value of `10-5`) to annotate contigs against a protein database.  
    - Step (`blastx_assembled`): Produces a tab-delimited output with taxonomic and functional information for each contig.
 
-6. **Mapping & Statistics**  
+6. **Mapping & statistics**  
    - Feature: Maps reads back to the assembled contigs (with `bwa-mem2` + `samtools`) and uses [seqkit](https://bioinf.shenwei.me/seqkit/) for read-count statistics.  
    - Steps (`map_reads_to_contigs`, Statistics & Merging):  Generates coverage information, creates BAM files, and merges coverage and annotation results into summary tables.
 
-7. **Result Organization**  
+7. **Result organization**  
    - Feature: Creates renamed, centrally linked annotation and summary files for easier access and downstream analysis.  
    - Step (`store_completed_annotation_files`): Renames `completed_{sample}_annotation.tsv` files, links them in a central `annotations/` folder, and cleans up temporary files.
 
-8. **Rule Prioritization**  
+8. **Rule prioritization**  
    - Certain rules, such as blastx_assembled and assemble_filtered, have assigned priorities to optimize scheduling and execution.  
 
 
-## Installation and quick start
+### Installation and quick start
 
 1. **Clone the repository:**
 
@@ -75,7 +75,7 @@ This repository contains a Snakemake workflow for processing Illumina sequencing
     The pipeline will start using 8 cores, and the results will be saved in a directory named `processed_ddmmyy` (default naming format based on the current date).  
 
 
-### Project structure & key outputs
+#### Project structure & key outputs
 
 **Example project layout** after cloning the repo and executing the workflow:
 
@@ -85,7 +85,7 @@ updated_illumina_workflow/
 │   └── runXYZ/
 │       ├── sampleA_R1_001.fastq.gz
 │       └── sampleA_R2_001.fastq.gz
-├── up_illumina_wf_snakefile.smk     # snakefile
+├── up_illumina_wf_snakefile.smk      # snakefile
 ├── environment.yaml                  # dependencies for conda installation
 ├── multiL_fasta_2singleL.py          # helper script
 ├── execute-and-log.sh                # wrapper
@@ -107,7 +107,7 @@ updated_illumina_workflow/
 - **`processed_ddmmyy/`** is generated by the workflow and contains processed outputs, organized into subfolders for each `{run}` and `{sample}`, following the structure `{OUTPUT_FOLDER}/{run}/{sample}`  
 
 
-### Output Directories & Files
+#### Output directories & files
 
 1. **`dedup_qc/`** Contains the **QC**ed and **deduplicated** reads and fastp reports.
 2. **`filtered/`** Holds the **human-filtered** reads after removing host contamination.
@@ -117,7 +117,7 @@ updated_illumina_workflow/
 6. **`summary/`** Summary tables of coverage, read statistics, and merged annotation data for quick reference.  
 
 
-## Advanced usage and configuration
+### Advanced usage and configuration
 
 **To run the workflow with logging, use** `execute-and-log.sh`, which automates the process.
 Alternatively, launch the workflow by specifying the number of cores, memory, and other parameters.
@@ -151,7 +151,7 @@ snakemake -s up_illumina_wf_snakefile.smk \
 > **Note:** To filter out shorter contigs, set `MIN_CONTIG_LEN` to desired threshold. Also uncomment lines related to `fil_renamed_contigs` in the **assemble_filtered** rule in the snakefile.  
 
 
-### Resource Allocation and Priorities
+#### Resource Allocation and Priorities
   - Threads and Memory: Each rule in the Snakefile can dynamically allocate threads and memory.  
   - Adjusting Resources: Modify the `threads:` or `resources:` directives inside each rule for finer control.
   - Adjusting Priorities: Some rules include **priority settings** to optimize execution order. This ensures that computationally intensive steps start earlier, preventing bottlenecks and reducing total runtime. **Example Priority Assignments**:  
@@ -161,5 +161,5 @@ snakemake -s up_illumina_wf_snakefile.smk \
 > **Note:** By default, rules have priority 0. Raise or lower priority levels as needed.  
 
 
-## Acknowledgements
+### Acknowledgements
 Special thanks to **Nathalie Worp** and **David Nieuwenhuijse** for developing the original Illumina workflow, which was further adapted here.
