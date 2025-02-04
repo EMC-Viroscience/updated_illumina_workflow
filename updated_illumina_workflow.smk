@@ -233,14 +233,16 @@ rule merge_results:
 #         completed = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/completed_{{sample}}_annotation.tsv"
 #     output:
 #         announced = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/.announced"
+#         announce_all_samples = f"{OUTPUT_FOLDER}/annouce_complettion.log" ${{run}}/{{sample}}/.announced
 #     run:
 #         from datetime import datetime
 #         date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#         print(f"{input.completed} is finished classification at {date_str}")
+#         with open(output.announce_all_samples, "a") as logf:
+#             logf.write(f"{input.completed} is finished classification at {date_str}")
 #         # create a dummy file to signal completion
 #         with open(output.announced, "w") as f:
 #             f.write("Announced\n")
-#
+
 
 # create links to all the "completed*" classification tables per sample, to a central location per run
 rule store_completed_annotation_files:

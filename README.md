@@ -6,7 +6,7 @@
 
 ## Overview
 
-This repository contains the Snakemake workflow for processing Illumina sequencing data in a metagenomic context. The pipeline includes steps for quality control, human read filtering, de novo assembly, annotation, and result summarization. The workflow is designed to be modular, resource-aware, and easy to configure, with outputs organized dynamically based on the current date.
+This repository is a Snakemake workflow for processing Illumina sequencing data in a metagenomic context. The pipeline includes steps for quality control, human read filtering, de novo assembly, annotation, and result summarization. The workflow is designed to be resource-aware, modular, and easy to configure, with outputs organized dynamically based on the current date.
 
 ## Features
 
@@ -32,8 +32,10 @@ This repository contains the Snakemake workflow for processing Illumina sequenci
 2. **Set Up a Conda Environment (Recommended):**
 
     ```bash
+
     conda create -n illumina_workflow python=3.8 snakemake fastp bwa-mem2 samtools spades diamond seqkit -c bioconda -c conda-forge
     conda activate illumina_workflow
+    
     ```
 
 3. **Additional Dependencies:**
@@ -49,11 +51,18 @@ The workflow uses a configuration variable `OUTPUT_FOLDER` (set in the Snakefile
 Run the workflow by specifying the number of cores and the available memory. For example:
 
 ```bash
-snakemake -s updated_illumina_workflow.smk \ #--config OUTPUT_FOLDER="processed_now" \
---resources mem_gb=250 --cores 32 \
---rerun-triggers mtime \  # Forces rerun if input files are updated
---rerun-incomplete \
---latency-wait 30 --max-jobs-per-second 2 --max-status-checks-per-second 4 \
+
+snakemake -s updated_illumina_workflow.smk \  # Specify the workflow file
+    --config OUTPUT_FOLDER="processed_now" \  # Set the output directory
+    --resources mem_gb=192 \  # Allocate 192GB of memory for the workflow
+    # typically allocate mem_gb= 16x{cores}
+    --cores 24 \  # Use up to 24 CPU cores
+    --rerun-triggers mtime \  # Force rerun if input files are modified (based on modification time)
+    --rerun-incomplete \  # Retry any incomplete jobs from previous runs
+    --latency-wait 30 \  # Wait up to 30 seconds for input files (useful for network filesystems)
+    --max-jobs-per-second 2 \  # Limit job submission rate to 2 per second
+    --max-status-checks-per-second 4  # Limit status checks to 4 per second
+
 ```
 
 ##  Workflow Structure
@@ -90,9 +99,6 @@ The number of threads and memory for each rule are set dynamically. You can adju
 
 **Rule Priorities:**
 Some rules have assigned priorities (e.g., assemble_filtered has priority 1, blastx_assembled has priority 2) to help guide the scheduler. You can adjust these if needed.
-
-**Optional Announcements:**
-If desired, you can enable the announcement rule to print a message when a sample’s annotation is complete. Simply uncomment the relevant rule in the Snakefile.
 
 **Acknowledgements**
 Nathalie Worp and David Nieuwenhuisje – for the original Illumina workflow that was further adapted here.
