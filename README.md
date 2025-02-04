@@ -1,8 +1,9 @@
 # Illumina Workflow for Metagenomic Data Processing
 
 **Adapted by:** [Divyae Kishore Prasad](https://github.com/divprasad/)
-**Original Workflow by:** Nathalie Worp and David Nieuwenhuisje  
-**Development Period:** Jul'24–Feb'25
+
+**Original workflow credits:** Nathalie Worp and David Nieuwenhuisje  
+**Development period:** Jul'24–Feb'25
 
 
 
