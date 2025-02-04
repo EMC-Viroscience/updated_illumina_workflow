@@ -33,7 +33,7 @@ This repository is a Snakemake workflow for processing Illumina sequencing data 
 
     ```bash
 
-    conda create -n illumina_workflow python=3.8 snakemake fastp bwa-mem2 samtools spades diamond seqkit -c bioconda -c conda-forge
+    conda env create -f environment.yaml
     conda activate illumina_workflow
 
     ```
