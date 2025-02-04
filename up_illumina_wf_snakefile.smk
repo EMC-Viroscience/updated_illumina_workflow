@@ -1,5 +1,5 @@
 # adapted by Divyae Kishore Prasad, written between July-October 2024
-# updated the "illumina workflow" developed by Nathalie Worp and David Nieuwenhuisje
+# updated the "illumina workflow" developed by Nathalie Worp and David Nieuwenhuijse
 
 import multiprocessing
 import datetime
@@ -123,7 +123,6 @@ rule assemble_filtered:
 
         # # Filter sequences longer than the specified minimum length
         # seqkit seq -g -m {params.min_len} {output.renamed_contigs} > {output.fil_renamed_contigs}
-        #
         # # Convert the filtered output to single-line FASTA format
         # python multiL_fasta_2singleL.py {output.fil_renamed_contigs}
         # mv {output.fil_renamed_contigs}_SL {output.fil_renamed_contigs}
@@ -154,7 +153,6 @@ rule blastx_assembled:
         """
 # tantan: identify low-complexity regions in the sequences.
 # Mask these regions (make them ignored in alignment) while leaving the regions visible in the sequence for reference.
-# --taxonmap /mnt/viro0002/workgroups_projects/Bioinformatics/DB/nr_2024-06-18/prot.accession2taxid.FULL.gz \
 
 # map reads back to the assembled contigs; needed to calculate the depth per position, mean coverage per contig etc
 rule map_reads_to_contigs:
