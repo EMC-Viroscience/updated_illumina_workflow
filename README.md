@@ -40,7 +40,7 @@ This repository is a Snakemake workflow for processing Illumina sequencing data 
 
 3. **Additional Dependencies:**
 
-   The workflow uses optional custom scripts (e.g., `multiL_fasta_2singleL.py`).
+   The workflow uses optional scripts (e.g., `multiL_fasta_2singleL.py`) to covert multi line fasta to single line fasta file.
 
 ## Configuration
 
@@ -54,16 +54,23 @@ Alternatively, run the workflow by specifying the number of cores and the availa
 
 ```bash
 
-snakemake -s updated_illumina_workflow.smk \  # Specify the workflow file
-    --config OUTPUT_FOLDER="processed_now" \  # Set the output directory
-    --resources mem_gb=192 \  # Allocate 192GB of memory for the workflow
-    # typically allocate mem_gb= 16x{cores}
-    --cores 24 \  # Use up to 24 CPU cores
-    --rerun-triggers mtime \  # Force rerun if input files are modified (based on modification time)
-    --rerun-incomplete \  # Retry any incomplete jobs from previous runs
-    --latency-wait 30 \  # Wait up to 30 seconds for input files (useful for network filesystems)
-    --max-jobs-per-second 2 \  # Limit job submission rate to 2 per second
-    --max-status-checks-per-second 4  # Limit status checks to 4 per second
+snakemake -s updated_illumina_workflow.smk \  
+    --resources mem_gb=192 \  
+    --cores 24 \  
+    --rerun-triggers mtime \  
+    --rerun-incomplete \  
+    --latency-wait 30 \  
+    --max-jobs-per-second 2 \  
+    --max-status-checks-per-second 4  
+
+# by default snakemake will set output directory as "processed_ddmmyy"   
+# Use up to 24 CPU cores
+# Allocate 192GB of memory for the workflow (memory should be approximately 16x CPU cores)
+# Force rerun if input files are modified (based on modification time)
+# Retry any incomplete jobs from previous runs
+# Wait up to 30 seconds for input files (useful for network filesystems)
+# Limit job submission rate to 2 per second
+# Limit status checks to 4 per second
 
 ```
 
@@ -94,7 +101,14 @@ Maps reads back to the assembled contigs to generate BAM files.
 ## Customization
 
 **Output Folder:**
-You can provide a custom OUTPUT_FOLDER via a configuration file.
+These change be provided using a configuration file.
+
+You can provide a custom OUTPUT_FOLDER  by adding the flag
+`--config OUTPUT_FOLDER="processed_mydate"`
+
+You can provide a desired length for filtering short contigs by adding the flag (default is 250)
+`--config MIN_CONTIG_LEN="300"` \  
+also uncomment fil_renamed_contigs output and respective code in assemble_filtered
 
 **Resource Allocation:**
 The number of threads and memory for each rule are set dynamically. You can adjust these values using the threads and resources directives in each rule.
