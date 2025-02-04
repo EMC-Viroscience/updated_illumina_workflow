@@ -42,10 +42,6 @@ This repository is a Snakemake workflow for processing Illumina sequencing data 
 
    The workflow uses optional scripts (e.g., `multiL_fasta_2singleL.py`) to covert multi line fasta to single line fasta file.
 
-## Configuration
-
-The workflow uses a configuration variable `OUTPUT_FOLDER` (set in the Snakefile) to determine the output directory. If nothing is provided, then by default, it creates a folder named in the format `processed_ddmmyy` based on the current date. You can override this by providing a configuration file.
-
 ## Usage
 
 **Check the `execute-and-log.sh` for easily launching the script with logging**
@@ -98,18 +94,21 @@ Maps reads back to the assembled contigs to generate BAM files.
 
 8. **File Organization (store_completed_annotation_files):** Renames and organizes the final annotation files and creates central links for downstream access.
 
-## Customization
+## Configuration and Customization
 
-**Output Folder:**
-These change be provided using a configuration file.
+**Configuration**
 
-You can provide a custom OUTPUT_FOLDER  by adding the flag
-`--config OUTPUT_FOLDER="processed_mydate"`
+The workflow uses a configuration variable `OUTPUT_FOLDER` (set in the Snakefile) to determine the output directory. If nothing is provided, then by default, it creates a folder named in the format `processed_ddmmyy` based on the current date. You can override this by providing a configuration file or by passing the flag --config OUTPUT_FOLDER="name" and --config MIN_CONTIG_LEN="len"
 
-You can provide a desired length for filtering short contigs by adding the flag (default is 250)
-`--config MIN_CONTIG_LEN="300"` \  
-also uncomment fil_renamed_contigs output and respective code in assemble_filtered
+```bash
+# *Output Folder:*
+--config OUTPUT_FOLDER="processed_mydate"
 
+# *Contig Length:*
+--config MIN_CONTIG_LEN="300"
+# Filtering short contigs by adding the flag (default is 250).
+# Also uncomment fil_renamed_contigs output and respective code in assemble_filtered
+```
 **Resource Allocation:**
 The number of threads and memory for each rule are set dynamically. You can adjust these values using the threads and resources directives in each rule.
 
