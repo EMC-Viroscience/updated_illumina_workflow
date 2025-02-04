@@ -23,11 +23,12 @@ set -euo pipefail  # Enable strict error handling
   Ensures fail-fast behavior: If a command fails, the script exits immediately instead of continuing with potential errors.
   Catches unintended issues, like unset variables.
   Helps debug pipelines where errors might otherwise be ignored.
-""""""
+"""
 
 
 # Get the current date in DDMMYY format
 var_date_time=$(date +%d%m%y)
+# $var_date_time is now ddmmyy
 
 # Define log file with timestamped name
 log_file="logging_${var_date_time}"
@@ -44,9 +45,9 @@ read -p "Enter memory in GB for resources (default 128): " mem_gb
 mem_gb=${mem_gb:-192}
 
 # Print start information to the console and log file
-echo "##------START------##" | tee -a "$log_file"
+echo "##======STARTING WORKFLOW======##" | tee -a "$log_file"
 date | tee -a "$log_file"
-echo "##-----------------##" | tee -a "$log_file"
+echo "##=============================##" | tee -a "$log_file"
 
 # Inform the user about the Snakemake execution
 echo "Running 'updated_illumina_workflow.smk' with ${cores} cores and ${mem_gb} GB memory" | tee -a "$log_file"
@@ -61,6 +62,7 @@ usr_time="/usr/bin/time"
 ${usr_time} -o "$log_file" --append \
     snakemake -n -s updated_illumina_workflow.smk \  # Specify the workflow file
     --config OUTPUT_FOLDER="processed_${var_date_time}" \  # Set the output directory
+    # by default snakemake will set output directory as "processed_ddmmyy"
     --resources mem_gb=${mem_gb} \  # Allocate the specified GB of memory
     --cores ${cores} \  # Use the specified number of CPU cores
     --rerun-triggers mtime \  # Force rerun if input files are modified (based on modification time)
@@ -70,6 +72,6 @@ ${usr_time} -o "$log_file" --append \
     --max-status-checks-per-second 4  # Limit status checks to 4 per second
 
 # Print end information to log file
-echo "##------END------##" | tee -a "$log_file"
+echo "##======WORKFLOW COMPLETED======##" | tee -a "$log_file"
 date | tee -a "$log_file"
-echo "##---------------##" | tee -a "$log_file"
+echo "##=============================##" | tee -a "$log_file"

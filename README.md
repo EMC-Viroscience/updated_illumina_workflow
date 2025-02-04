@@ -35,7 +35,7 @@ This repository is a Snakemake workflow for processing Illumina sequencing data 
 
     conda create -n illumina_workflow python=3.8 snakemake fastp bwa-mem2 samtools spades diamond seqkit -c bioconda -c conda-forge
     conda activate illumina_workflow
-    
+
     ```
 
 3. **Additional Dependencies:**
@@ -48,7 +48,9 @@ The workflow uses a configuration variable `OUTPUT_FOLDER` (set in the Snakefile
 
 ## Usage
 
-Run the workflow by specifying the number of cores and the available memory. For example:
+**Check the `execute-and-log.sh` to easy launch the script with logging**
+
+Alternatively, run the workflow by specifying the number of cores and the available memory. For example:
 
 ```bash
 
