@@ -2,47 +2,46 @@
 
 **Adapted by:** [Divyae Kishore Prasad](https://github.com/divprasad/)  
 **Original workflow by:** Nathalie Worp and David Nieuwenhuisje  
-**Development period:** Jul'24–Feb'25
-
+**Development period:** Jul'24–Feb'25  
 
 
 ## Overview
 
-This repository contains a Snakemake workflow for processing Illumina sequencing data, optimized and validated for metagenomics. The end-to-end workflow, up_illumina_wf_snakefile.smk, includes steps to process raw reads into taxonomic annotation: quality control, human read filtering, de novo assembly, annotation, and result summarization. The Snakefile is designed to be resource-aware, modular, and easy to configure, with outputs dynamically organized based on the current date.
+This repository contains a Snakemake workflow for processing Illumina sequencing data, optimized and validated for metagenomics. The end-to-end workflow, `up_illumina_wf_snakefile.smk`, includes steps to process raw reads into taxonomic annotation: quality control, human read filtering, de novo assembly, annotation, and result summarization. The Snakefile is designed to be resource-aware, modular, and easy to configure, with outputs dynamically organized based on the current date.  
 
 
 ## Workflow
 
-1. **Dynamic Output Folder & Raw Data Linking**  
+1. **Dynamic Output Folder & raw data linking**  
    - **Feature:** Automatically creates an output folder named based on the current date (e.g., `processed_ddmmyy`).  
-   - **Step (hardlink_raw):** Hard-links or copies raw FASTQ files from `raw_data/`. The dynamically generated folder ensures easy data management.
+   - **Step (`hardlink_raw`):** Hard-links or copies raw FASTQ files from `raw_data/`. The dynamically generated folder ensures easy data management.
 
-2. **Quality Control & Deduplication**  
+2. **Quality control & Deduplication**  
    - **Feature:** Uses [fastp](https://github.com/OpenGene/fastp) to perform both quality trimming and deduplication in a single run.  
-   - **Step (QC_after_dedup):** Generates cleaned, deduplicated reads, and provides an HTML/JSON report detailing quality metrics.
+   - **Step (`QC_after_dedup`):** Generates cleaned, deduplicated reads, and provides an HTML/JSON report detailing quality metrics.
 
-3. **Human Read Filtering**  
-   - **Feature:** Removes contaminating human reads by aligning against the human reference genome with [bwa-mem2](https://github.com/bwa-mem2/bwa-mem2), then uses [samtools](http://www.htslib.org/) to retain only unmapped reads.  
-   - **Step (filter_human):** Generates filtered reads free of host contamination to improve downstream assembly and annotation accuracy.
+3. **Human read filtering**  
+   - **Feature:** Removes (background contaminating) human reads by aligning against the human reference genome with [bwa-mem2](https://github.com/bwa-mem2/bwa-mem2), then uses [samtools](http://www.htslib.org/) to retain only unmapped reads.  
+   - **Step (`filter_human`):** Generates filtered reads free of host contamination to improve downstream assembly and annotation accuracy.
 
 4. **De Novo Assembly**  
    - **Feature:** Assembles filtered reads using [metaSPAdes](https://cab.spbu.ru/software/spades/), optimized for metagenomic data.  
-   - **Step (assemble_filtered):** Generates assembled contigs; includes post-processing such as renaming contigs to include run and barcode information for clarity and converting multi-line FASTA to single-line FASTA.
+   - **Step (`assemble_filtered`):** Generates assembled contigs; includes post-processing such as renaming contigs to include run and barcode information for clarity and converting multi-line FASTA to single-line FASTA.
 
 5. **Annotation**  
    - **Feature:** Runs high-speed homology searches with [DIAMOND BLASTX](https://github.com/bbuchfink/diamond) (e-value of `10-5`) to annotate contigs against a protein database.  
-   - **Step (blastx_assembled):** Produces a tab-delimited output with taxonomic and functional information for each contig.
+   - **Step (`blastx_assembled`):** Produces a tab-delimited output with taxonomic and functional information for each contig.
 
 6. **Mapping & Statistics**  
    - **Feature:** Maps reads back to the assembled contigs (with `bwa-mem2` + `samtools`) and uses [seqkit](https://bioinf.shenwei.me/seqkit/) for read-count statistics.  
-   - **Steps (map_reads_to_contigs, Statistics & Merging):**  Generates coverage information, creates BAM files, and merges coverage and annotation results into summary tables.
+   - **Steps (`map_reads_to_contigs`, Statistics & Merging):**  Generates coverage information, creates BAM files, and merges coverage and annotation results into summary tables.
 
 7. **Result Organization**  
    - **Feature:** Creates renamed, centrally linked annotation and summary files for easier access and downstream analysis.  
-   - **Step (store_completed_annotation_files):** Renames `completed_{sample}_annotation.tsv` files, links them in a central `annotations/` folder, and cleans up temporary files.
+   - **Step (`store_completed_annotation_files`):** Renames `completed_{sample}_annotation.tsv` files, links them in a central `annotations/` folder, and cleans up temporary files.
 
 8. **Rule Prioritization**  
-   - Certain rules, such as blastx_assembled and assemble_filtered, have assigned priorities to optimize scheduling and execution.
+   - Certain rules, such as blastx_assembled and assemble_filtered, have assigned priorities to optimize scheduling and execution.  
 
 
 ## Installation and quick start
@@ -73,7 +72,7 @@ This repository contains a Snakemake workflow for processing Illumina sequencing
     ```
     snakemake -s up_illumina_wf_snakefile.smk --cores 8
     ```
-    The pipeline will start using 8 cores, and the results will be saved in a directory named `processed_ddmmyy` (default naming format based on the current date).
+    The pipeline will start using 8 cores, and the results will be saved in a directory named `processed_ddmmyy` (default naming format based on the current date).  
 
 
 ### Project structure & key outputs
@@ -105,7 +104,7 @@ updated_illumina_workflow/
 ```
 
 - **`raw_data/`** holds the raw FASTQ files to be processed.
-- **`processed_ddmmyy/`** is generated by the workflow and contains processed outputs, organized into subfolders for each `{run}` and `{sample}`, following the structure `{OUTPUT_FOLDER}/{run}/{sample}`
+- **`processed_ddmmyy/`** is generated by the workflow and contains processed outputs, organized into subfolders for each `{run}` and `{sample}`, following the structure `{OUTPUT_FOLDER}/{run}/{sample}`  
 
 
 ### Output Directories & Files
@@ -115,7 +114,7 @@ updated_illumina_workflow/
 3. **`assembly/contigs.fasta`** Final **assembled** contigs from metaSPAdes.
 4. **`{sample}_annotation.tsv`** DIAMOND BLASTX annotation results for each assembled contig.
 5. **`mappings/{sample}_mappings.bam`** BAM files with reads mapped back to contigs.
-6. **`summary/`** Summary tables of coverage, read statistics, and merged annotation data for quick reference.
+6. **`summary/`** Summary tables of coverage, read statistics, and merged annotation data for quick reference.  
 
 
 ## Advanced usage and configuration
@@ -134,22 +133,23 @@ snakemake -s up_illumina_wf_snakefile.smk \
     --max-status-checks-per-second 4
 ```
 - **Default Output**: If no custom folder is specified (in config file or passing flag to snakemake), default output directory is `processed_ddmmyy`.  
-- **cores**: Use up to 24 CPU cores
-- **resources mem_gb**: Allocate 192 GB memory (roughly 16× the number of cores).  
-- **rerun-triggers**: Force a rerun if file modification times indicate that inputs have changed.  
-- **rerun-incomplete**: Rerun incomplete jobs from previous executions.
-- **latency-wait**: Waits up to 30 seconds for input files (useful for network filesystems).
+- **`cores`**: Use up to 24 CPU cores
+- **`resources mem_gb`**: Allocate 192 GB memory (roughly 16× the number of cores).  
+- **`rerun-triggers`**: Force a rerun if file modification times indicate that inputs have changed.  
+- **`rerun-incomplete`**: Rerun incomplete jobs from previous executions.
+- **`latency-wait`**: Waits up to 30 seconds for input files (useful for network filesystems).
 - **Job submission and status check rate**: Limit new job submission rate (`max-jobs-per-second`) to 2 new jobs per second; limit job status check rate (`max-status-checks-per-second`) to 4 checks per second
 
 **Configuration**: The workflow reads configuration variables from a user-provided config file or from flags passed to Snakemake. For example, specify a custom output folder and minimum contig length:
 
-```bash
+```
 snakemake -s up_illumina_wf_snakefile.smk \
     --config OUTPUT_FOLDER="processed_mydate" MIN_CONTIG_LEN="300" \
     --cores 16
 ```
 
-> **Note:** To filter out shorter contigs, set `MIN_CONTIG_LEN` to desired threshold. Also uncomment lines related to `fil_renamed_contigs` in the **assemble_filtered** rule in the snakefile.
+> **Note:** To filter out shorter contigs, set `MIN_CONTIG_LEN` to desired threshold. Also uncomment lines related to `fil_renamed_contigs` in the **assemble_filtered** rule in the snakefile.  
+
 
 ### Resource Allocation and Priorities
   - **Threads and Memory**: Each rule in the Snakefile can dynamically allocate threads and memory.  
@@ -158,8 +158,8 @@ snakemake -s up_illumina_wf_snakefile.smk \
     - **`blastx_assembled`**  → **Priority 2** - As the most time-consuming step, it is executed first.  
     - **`assemble_filtered`** → **Priority 1** - This step runs with higher priority than all other jobs.
 
-> **Note:** By default, rules have priority 0. Raise or lower priority levels as needed.
+> **Note:** By default, rules have priority 0. Raise or lower priority levels as needed.  
 
 
 ## Acknowledgements
-Special thanks to **Nathalie Worp** and **David Nieuwenhuisje** for developing the original Illumina workflow, which was further adapted here.
+Special thanks to **Nathalie Worp** and **David Nieuwenhuijse** for developing the original Illumina workflow, which was further adapted here.
