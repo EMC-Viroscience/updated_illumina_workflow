@@ -13,32 +13,32 @@ This repository contains a Snakemake workflow for processing Illumina sequencing
 ## Workflow
 
 1. **Dynamic Output Folder & raw data linking**  
-   - **Feature:** Automatically creates an output folder named based on the current date (e.g., `processed_ddmmyy`).  
-   - **Step (`hardlink_raw`):** Hard-links or copies raw FASTQ files from `raw_data/`. The dynamically generated folder ensures easy data management.
+   - Feature: Automatically creates an output folder named based on the current date (e.g., `processed_ddmmyy`).  
+   - Step (`hardlink_raw`): Hard-links or copies raw FASTQ files from `raw_data/`. The dynamically generated folder ensures easy data management.
 
 2. **Quality control & Deduplication**  
-   - **Feature:** Uses [fastp](https://github.com/OpenGene/fastp) to perform both quality trimming and deduplication in a single run.  
-   - **Step (`QC_after_dedup`):** Generates cleaned, deduplicated reads, and provides an HTML/JSON report detailing quality metrics.
+   - Feature: Uses [fastp](https://github.com/OpenGene/fastp) to perform both quality trimming and deduplication in a single run.  
+   - Step (`QC_after_dedup`): Generates cleaned, deduplicated reads, and provides an HTML/JSON report detailing quality metrics.
 
 3. **Human read filtering**  
-   - **Feature:** Removes (background contaminating) human reads by aligning against the human reference genome with [bwa-mem2](https://github.com/bwa-mem2/bwa-mem2), then uses [samtools](http://www.htslib.org/) to retain only unmapped reads.  
-   - **Step (`filter_human`):** Generates filtered reads free of host contamination to improve downstream assembly and annotation accuracy.
+   - Feature:** Removes (background contaminating) human reads by aligning against the human reference genome with [bwa-mem2](https://github.com/bwa-mem2/bwa-mem2), then uses [samtools](http://www.htslib.org/) to retain only unmapped reads.  
+   - Step (`filter_human`): Generates filtered reads free of host contamination to improve downstream assembly and annotation accuracy.
 
 4. **De Novo Assembly**  
-   - **Feature:** Assembles filtered reads using [metaSPAdes](https://cab.spbu.ru/software/spades/), optimized for metagenomic data.  
-   - **Step (`assemble_filtered`):** Generates assembled contigs; includes post-processing such as renaming contigs to include run and barcode information for clarity and converting multi-line FASTA to single-line FASTA.
+   - Feature: Assembles filtered reads using [metaSPAdes](https://cab.spbu.ru/software/spades/), optimized for metagenomic data.  
+   - Step (`assemble_filtered`): Generates assembled contigs; includes post-processing such as renaming contigs to include run and barcode information for clarity and converting multi-line FASTA to single-line FASTA.
 
 5. **Annotation**  
-   - **Feature:** Runs high-speed homology searches with [DIAMOND BLASTX](https://github.com/bbuchfink/diamond) (e-value of `10-5`) to annotate contigs against a protein database.  
-   - **Step (`blastx_assembled`):** Produces a tab-delimited output with taxonomic and functional information for each contig.
+   - Feature: Runs high-speed homology searches with [DIAMOND BLASTX](https://github.com/bbuchfink/diamond) (e-value of `10-5`) to annotate contigs against a protein database.  
+   - Step (`blastx_assembled`): Produces a tab-delimited output with taxonomic and functional information for each contig.
 
 6. **Mapping & Statistics**  
-   - **Feature:** Maps reads back to the assembled contigs (with `bwa-mem2` + `samtools`) and uses [seqkit](https://bioinf.shenwei.me/seqkit/) for read-count statistics.  
-   - **Steps (`map_reads_to_contigs`, Statistics & Merging):**  Generates coverage information, creates BAM files, and merges coverage and annotation results into summary tables.
+   - Feature: Maps reads back to the assembled contigs (with `bwa-mem2` + `samtools`) and uses [seqkit](https://bioinf.shenwei.me/seqkit/) for read-count statistics.  
+   - Steps (`map_reads_to_contigs`, Statistics & Merging):  Generates coverage information, creates BAM files, and merges coverage and annotation results into summary tables.
 
 7. **Result Organization**  
-   - **Feature:** Creates renamed, centrally linked annotation and summary files for easier access and downstream analysis.  
-   - **Step (`store_completed_annotation_files`):** Renames `completed_{sample}_annotation.tsv` files, links them in a central `annotations/` folder, and cleans up temporary files.
+   - Feature: Creates renamed, centrally linked annotation and summary files for easier access and downstream analysis.  
+   - Step (`store_completed_annotation_files`): Renames `completed_{sample}_annotation.tsv` files, links them in a central `annotations/` folder, and cleans up temporary files.
 
 8. **Rule Prioritization**  
    - Certain rules, such as blastx_assembled and assemble_filtered, have assigned priorities to optimize scheduling and execution.  
@@ -132,7 +132,7 @@ snakemake -s up_illumina_wf_snakefile.smk \
     --max-jobs-per-second 2 \
     --max-status-checks-per-second 4
 ```
-- **Default Output**: If no custom folder is specified (in config file or passing flag to snakemake), default output directory is `processed_ddmmyy`.  
+- **Default output**: If no custom folder is specified (in config file or passing flag to snakemake), default output directory is `processed_ddmmyy`.  
 - **`cores`**: Use up to 24 CPU cores
 - **`resources mem_gb`**: Allocate 192 GB memory (roughly 16× the number of cores).  
 - **`rerun-triggers`**: Force a rerun if file modification times indicate that inputs have changed.  
@@ -152,9 +152,9 @@ snakemake -s up_illumina_wf_snakefile.smk \
 
 
 ### Resource Allocation and Priorities
-  - **Threads and Memory**: Each rule in the Snakefile can dynamically allocate threads and memory.  
-  - **Adjusting Resources**: Modify the `threads:` or `resources:` directives inside each rule for finer control.
-  - **Adjusting Priorities**: Some rules include **priority settings** to optimize execution order. This ensures that computationally intensive steps start earlier, preventing bottlenecks and reducing total runtime. **Example Priority Assignments**:  
+  - Threads and Memory: Each rule in the Snakefile can dynamically allocate threads and memory.  
+  - Adjusting Resources: Modify the `threads:` or `resources:` directives inside each rule for finer control.
+  - Adjusting Priorities: Some rules include **priority settings** to optimize execution order. This ensures that computationally intensive steps start earlier, preventing bottlenecks and reducing total runtime. **Example Priority Assignments**:  
     - **`blastx_assembled`**  → **Priority 2** - As the most time-consuming step, it is executed first.  
     - **`assemble_filtered`** → **Priority 1** - This step runs with higher priority than all other jobs.
 
