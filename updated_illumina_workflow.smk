@@ -172,6 +172,7 @@ rule map_reads_to_contigs:
         """
         set -euo pipefail
 
+        bwa-mem2 index {input.contigs}
         bwa-mem2 mem -Y -t {threads} {input.contigs} {input.R1} {input.R2} | samtools view -b - | samtools sort -o {params.tmp_paired}
         bwa-mem2 mem -Y -t {threads} {input.contigs} {input.S} | samtools view -b - | samtools sort -o {params.tmp_singlets}
         samtools merge {output.bam} {params.tmp_paired} {params.tmp_singlets}
