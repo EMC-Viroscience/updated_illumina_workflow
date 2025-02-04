@@ -8,7 +8,7 @@
 
 ## Overview
 
-This repository contains a Snakemake workflow for processing Illumina sequencing data, optimized and validated for metagenomics. The end-to-end workflow, updated_illumina_workflow.smk, includes steps to process raw reads into taxonomic annotation: quality control, human read filtering, de novo assembly, annotation, and result summarization. The Snakefile is designed to be resource-aware, modular, and easy to configure, with outputs dynamically organized based on the current date.
+This repository contains a Snakemake workflow for processing Illumina sequencing data, optimized and validated for metagenomics. The end-to-end workflow, up_illumina_wf_snakefile.smk, includes steps to process raw reads into taxonomic annotation: quality control, human read filtering, de novo assembly, annotation, and result summarization. The Snakefile is designed to be resource-aware, modular, and easy to configure, with outputs dynamically organized based on the current date.
 
 
 ## Workflow
@@ -58,7 +58,7 @@ This repository contains a Snakemake workflow for processing Illumina sequencing
 
     ```
     conda env create -f environment.yaml
-    conda activate illumina_workflow
+    conda activate illumina_wf_env
     ```
 
 3. **Set working directory:**
@@ -71,7 +71,7 @@ This repository contains a Snakemake workflow for processing Illumina sequencing
 
 4. **Running the workflow with minimal settings:**  
     ```
-    snakemake -s updated_illumina_workflow.smk --cores 8
+    snakemake -s up_illumina_wf_snakefile.smk --cores 8
     ```
     The pipeline will start using 8 cores, and the results will be saved in a directory named `processed_ddmmyy` (default naming format based on the current date).
 
@@ -86,7 +86,7 @@ updated_illumina_workflow/
 │   └── runXYZ/
 │       ├── sampleA_R1_001.fastq.gz
 │       └── sampleA_R2_001.fastq.gz
-├── updated_illumina_workflow.smk     # snakefile
+├── up_illumina_wf_snakefile.smk     # snakefile
 ├── environment.yaml                  # dependencies for conda installation
 ├── multiL_fasta_2singleL.py          # helper script
 ├── execute-and-log.sh                # wrapper
@@ -124,7 +124,7 @@ updated_illumina_workflow/
 Alternatively, launch the workflow by specifying the number of cores, memory, and other parameters.
 
 ```bash
-snakemake -s updated_illumina_workflow.smk \
+snakemake -s up_illumina_wf_snakefile.smk \
     --resources mem_gb=192 \
     --cores 24 \
     --rerun-triggers mtime \
@@ -144,7 +144,7 @@ snakemake -s updated_illumina_workflow.smk \
 **Configuration**: The workflow reads configuration variables from a user-provided config file or from flags passed to Snakemake. For example, specify a custom output folder and minimum contig length:
 
 ```bash
-snakemake -s updated_illumina_workflow.smk \
+snakemake -s up_illumina_wf_snakefile.smk \
     --config OUTPUT_FOLDER="processed_mydate" MIN_CONTIG_LEN="300" \
     --cores 16
 ```

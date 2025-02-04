@@ -1,4 +1,4 @@
-name: updated_illumina_workflow
+name: illumina_wf_env
 channels:
   - defaults
   - bioconda

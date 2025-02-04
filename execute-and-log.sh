@@ -45,7 +45,7 @@ date | tee -a "$log_file"
 echo "##=============================##" | tee -a "$log_file"
 
 # Inform the user about the Snakemake execution
-echo "Running 'updated_illumina_workflow.smk' with ${cores} cores and ${mem_gb} GB memory" | tee -a "$log_file"
+echo "Running 'up_illumina_wf_snakefile.smk' with ${cores} cores and ${mem_gb} GB memory" | tee -a "$log_file"
 
 # Define /usr/bin/time command to track execution time
 usr_time="/usr/bin/time"
@@ -55,7 +55,7 @@ usr_time="/usr/bin/time"
 # once dry run jobs make sense, remove -n flag
 
 ${usr_time} -o "$log_file" --append \
-    snakemake -n -s updated_illumina_workflow.smk \
+    snakemake -n -s up_illumina_wf_snakefile.smk \
     --resources mem_gb=${mem_gb} \
     --cores ${cores} \
     --rerun-triggers mtime \
