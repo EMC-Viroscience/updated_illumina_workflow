@@ -261,9 +261,9 @@ rule store_completed_annotation_files:
         cp {input} {output.ln_completed}
         cp {output.renamed_completed} {output.ln_renamed_completed}
 
-        # # For easier access, create symbolic links instead of copying files
-        # ln -s $(realpath {input}) {output.ln_completed}
-        # ln -s $(realpath {output.renamed_completed}) {output.ln_renamed_completed}
+        # # For easier access, create hard links instead of copying files
+        # ln $(realpath {input}) {output.ln_completed}
+        # ln $(realpath {output.renamed_completed}) {output.ln_renamed_completed}
 
         # Remove temp files associated with the sample
         rm -f {wildcards.run}_{wildcards.sample}*
@@ -332,11 +332,14 @@ rule seqkit_stat:
         awk 'FNR==1 && NR!=1 {{next}}{{print}}' \
         > {output.combined_stats}
 
-        seqkit stat {input.raw_R1} {input.raw_R2} \
-        {input.qc_dedup_R1} {input.qc_dedup_R2} {input.qc_dedup_S} \
-        {input.fil_qc_dedup_R1} {input.fil_qc_dedup_R2} \
-        {input.fil_qc_dedup_S} |\
-        awk 'FNR==1 && NR!=1 {{next}}{{print}}' |\
-        sed 's/,//g' | sed 's/  */ /g' \
+        # seqkit stat {input.raw_R1} {input.raw_R2} \
+        # {input.qc_dedup_R1} {input.qc_dedup_R2} {input.qc_dedup_S} \
+        # {input.fil_qc_dedup_R1} {input.fil_qc_dedup_R2} \
+        # {input.fil_qc_dedup_S} |\
+        # awk 'FNR==1 && NR!=1 {{next}}{{print}}' |\
+        # sed 's/,//g' | sed 's/  */ /g' \
+        # > {output.clean_combined_stats}
+
+        sed 's/,//g' | sed 's/  */ /g' {output.combined_stats} \
         > {output.clean_combined_stats}
         """
