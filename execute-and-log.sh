@@ -62,6 +62,7 @@ usr_time="/usr/bin/time"
 ${usr_time} -o "$log_file" --append \
     snakemake -n -s updated_illumina_workflow.smk \  # Specify the workflow file
     --config OUTPUT_FOLDER="processed_${var_date_time}" \  # Set the output directory
+    # --config MIN_CONTIG_LEN="300" \  # if this config is not passed, then default is 250
     # by default snakemake will set output directory as "processed_ddmmyy"
     --resources mem_gb=${mem_gb} \  # Allocate the specified GB of memory
     --cores ${cores} \  # Use the specified number of CPU cores

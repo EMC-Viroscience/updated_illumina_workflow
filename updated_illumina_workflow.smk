@@ -6,6 +6,7 @@ import datetime
 
 # Define the output folder dynamically based on current day and month.
 OUTPUT_FOLDER = config.get("OUTPUT_FOLDER", f"processed_{datetime.datetime.now().strftime('%d%m%y')}")
+MIN_CONTIG_LEN = config.get("MIN_CONTIG_LEN", 250)
 
 # Get the total number of cores specified when launching snakemake
 total_cores = workflow.cores
@@ -17,9 +18,6 @@ rule all:
     input:
         expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/contigs.fasta", zip, run=RUNS, sample=SAMPLES),
         expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_bam_stat.tsv", zip, run=RUNS, sample=SAMPLES),
-        # expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_raw.tsv", zip, run=RUNS, sample=SAMPLES),
-        # expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_dedup_qc.tsv", zip, run=RUNS, sample=SAMPLES),
-        # expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_filtered.tsv", zip, run=RUNS, sample=SAMPLES),
         expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{run}}_{{sample}}_read_processing_stats_clean.tsv", zip, run=RUNS, sample=SAMPLES),
         expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/renamed_completed_{{sample}}_annotation.tsv", zip, run=RUNS, sample=SAMPLES),
         expand(f"{OUTPUT_FOLDER}/{{run}}/annotations/renamed/renamed_completed_{{sample}}_annotation.tsv", zip, run=RUNS, sample=SAMPLES)
@@ -36,8 +34,9 @@ rule softlink_raw:
         """
         set -euo pipefail
 
-        ln -s $(realpath {input.R1}) {output.R1}
-        ln -s $(realpath {input.R2}) {output.R2}
+        # create hard links so as to back trace what input files have been processed
+        ln $(realpath {input.R1}) {output.R1}
+        ln $(realpath {input.R2}) {output.R2}
         """
 
 rule QC_after_dedup:
@@ -101,6 +100,7 @@ rule assemble_filtered:
         #fil_renamed_contigs  = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/fil_{{run}}_{{sample}}_contigs.fasta"
     params:
         spades_folder = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly"
+        min_len = MIN_CONTIG_LEN
     threads: max(16, round(total_cores / 4))
     shell:
         """
@@ -117,13 +117,15 @@ rule assemble_filtered:
         # Append the filename to the beginning of each contig
         sed "s/^>/>{wildcards.run}_{wildcards.sample}|/" {output.assembled_contigs} > {output.renamed_contigs}
 
-        # python /home/r061231/scripts/upper_FastaMLtoSL.py {output.renamed_contigs}
+        # Convert the output to single-line FASTA format
         python multiL_fasta_2singleL.py {output.renamed_contigs}
         mv {output.renamed_contigs}_SL {output.renamed_contigs}
 
-        # seqkit seq -g -m 250 {output.renamed_contigs} > {output.fil_renamed_contigs}
-        # # python /home/r061231/scripts/upper_FastaMLtoSL.py {output.fil_renamed_contigs}
-        # python v3_multiL_fasta_2singleL.py {output.fil_renamed_contigs}
+        # # Filter sequences longer than the specified minimum length
+        # seqkit seq -g -m {params.min_len} {output.renamed_contigs} > {output.fil_renamed_contigs}
+        #
+        # # Convert the filtered output to single-line FASTA format
+        # python multiL_fasta_2singleL.py {output.fil_renamed_contigs}
         # mv {output.fil_renamed_contigs}_SL {output.fil_renamed_contigs}
         """
 
@@ -161,7 +163,6 @@ rule map_reads_to_contigs:
         R2      = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R2.fastq.gz",
         S       = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_S.fastq.gz",
         contigs = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/contigs.fasta"
-        # Removed index_marker dependency because rule index_contigs is removed
     params:
         tmp_paired   = temp("{sample}_paired.tmp"),
         tmp_singlets = temp("{sample}_singlets.tmp")
@@ -233,7 +234,7 @@ rule merge_results:
 #         completed = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/completed_{{sample}}_annotation.tsv"
 #     output:
 #         announced = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/.announced"
-#         announce_all_samples = f"{OUTPUT_FOLDER}/annouce_complettion.log" ${{run}}/{{sample}}/.announced
+#         announce_all_samples = f"{OUTPUT_FOLDER}/annouce_completion.log" ${{run}}/{{sample}}/.announced
 #     run:
 #         from datetime import datetime
 #         date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -272,43 +273,6 @@ rule store_completed_annotation_files:
         rm -f {wildcards.sample}*
         """
 
-# rule raw_stats:
-#     input:
-#         r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R1.fastq.gz",
-#         r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/raw/{{run}}_{{sample}}_R2.fastq.gz"
-#     output:
-#         f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_raw.tsv"
-#     shell:
-#         """
-#         set -euo pipefail
-#         seqkit stats {input.r1} {input.r2} | awk 'FNR==1 && NR!=1{{next}}{{print}}' > {output}
-#         """
-#         # ``` awk 'FNR==1 && NR!=1{{next}}{{print}}' ```
-#         # command skips the first line of all files after the first file when concatenating multiple files, effectively removing repeated headers.
-#
-# rule dedup_qc_stats:
-#     input:
-#         r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R1.fastq.gz",
-#         r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R2.fastq.gz"
-#     output:
-#         f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_dedup_qc.tsv"
-#     shell:
-#         """
-#         set -euo pipefail
-#         seqkit stats {input.r1} {input.r2} | awk 'FNR==1 && NR!=1{{next}}{{print}}' > {output}
-#         """
-#
-# rule filtered_stats:
-#     input:
-#         r1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R1.fastq.gz",
-#         r2 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/filtered/{{run}}_{{sample}}_R2.fastq.gz"
-#     output:
-#         f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{sample}}_readstats_filtered.tsv"
-#     shell:
-#         """
-#         set -euo pipefail
-#         seqkit stats {input.r1} {input.r2} | awk 'FNR==1 && NR!=1{{next}}{{print}}' > {output}
-#         """
 
 rule seqkit_stat:
     input:
@@ -334,14 +298,11 @@ rule seqkit_stat:
         awk 'FNR==1 && NR!=1 {{next}}{{print}}' \
         > {output.combined_stats}
 
-        # seqkit stat {input.raw_R1} {input.raw_R2} \
-        # {input.qc_dedup_R1} {input.qc_dedup_R2} {input.qc_dedup_S} \
-        # {input.fil_qc_dedup_R1} {input.fil_qc_dedup_R2} \
-        # {input.fil_qc_dedup_S} |\
-        # awk 'FNR==1 && NR!=1 {{next}}{{print}}' |\
-        # sed 's/,//g' | sed 's/  */ /g' \
-        # > {output.clean_combined_stats}
-
         sed 's/,//g' | sed 's/  */ /g' {output.combined_stats} \
         > {output.clean_combined_stats}
+
+        # clean_combined_stats essentially removes left trailing white spaces,
+        # replaces tabs with single space (" ")
+        # and removes the commas for various numbers
+        # this helps to easily handle the `clean_combined_stats` for downstream analysis
         """

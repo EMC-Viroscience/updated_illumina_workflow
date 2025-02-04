@@ -48,7 +48,7 @@ The workflow uses a configuration variable `OUTPUT_FOLDER` (set in the Snakefile
 
 ## Usage
 
-**Check the `execute-and-log.sh` to easy launch the script with logging**
+**Check the `execute-and-log.sh` for easily launching the script with logging**
 
 Alternatively, run the workflow by specifying the number of cores and the available memory. For example:
 
