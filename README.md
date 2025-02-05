@@ -148,7 +148,7 @@ snakemake -s up_illumina_wf.snakefile \
   - Adjusting Priorities: Some rules have **priority settings** to optimize execution order. This ensures that computationally intensive steps start earlier, preventing bottlenecks and minimizing total runtime. A higher priority means the rule is executed first.
   **Example Priority Assignments**:  
     - **`blastx_assembled`**  → **Priority 2** - The most time-consuming step, so it runs first.  
-    - **`assemble_filtered`** → **Priority 1** - Runs before all other jobs except `blastx_assembled`.
+    - **`assemble_filtered`** → **Priority 1** - Runs before all other jobs except `blastx_assembled`.  
 
     > **Note:** By default, all rules have a priority of 0. Adjust priority levels as needed to optimize execution.
 

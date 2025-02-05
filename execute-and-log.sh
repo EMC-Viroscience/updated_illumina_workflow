@@ -26,7 +26,7 @@ set -euo pipefail  # Enable strict error handling
 var_date_time=$(date +%d%m%y) # $var_date_time is now ddmmyy
 
 # Define log file with timestamped name
-log_file="logging_${var_date_time}"
+log_file="log_${var_date_time}.txt"
 
 # Prompt user for number of CPU cores, with a default value of 24
 read -p "Enter number of cores (default 24): " cores
@@ -46,14 +46,17 @@ custom_folder_name=${custom_folder_name:-NO}
 
 # Validate custom folder name (allow only letters, numbers, underscores, and dashes)
 if [[ "$custom_folder_name" != "NO" && ! "$custom_folder_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-    echo "Error: Custom folder name contains spaces or illegal characters!"
+    echo "Error: Output folder name contains spaces or illegal characters!"
     echo "Allowed: Letters (A-Z, a-z), Numbers (0-9), Underscores (_), and Dashes (-)."
     exit 1  # Exit script with error
 fi
 
+output_folder="processed_${var_date_time}"
+
 # Set output folder name if custom folder is provided
 if [[ "$custom_folder_name" != "NO" ]]; then
-    log_file="logging_${custom_folder_name}"
+    log_file="log_${custom_folder_name}.txt"
+    output_folder=${custom_folder_name}
 fi
 
 # Print start information to the console and log file
@@ -63,9 +66,9 @@ echo "##=============================##" | tee -a "$log_file"
 
 # Print the Snakemake execution mode
 if [[ "$mode" == "e" ]]; then
-    echo "Executing workflow: 'up_illumina_wf.snakefile' with ${cores} cores and ${mem_gb} GB memory" | tee -a "$log_file"
+    echo -e "Executing workflow: 'up_illumina_wf.snakefile' with ${cores} cores and ${mem_gb} GB memory. Proccesed output will be stored in ${output_folder} " | tee -a "$log_file"
 else
-    echo "Performing dry run (-n): 'up_illumina_wf.snakefile' with ${cores} cores and ${mem_gb} GB memory" | tee -a "$log_file"
+    echo -e "Performing dry run (-n): 'up_illumina_wf.snakefile' with ${cores} cores and ${mem_gb} GB memory" | tee -a "$log_file"
 fi
 
 # Define /usr/bin/time command to track execution time
