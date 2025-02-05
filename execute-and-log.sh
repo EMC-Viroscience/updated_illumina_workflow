@@ -60,13 +60,13 @@ if [[ "$custom_folder_name" != "NO" ]]; then
 fi
 
 # Print start information to the console and log file
-echo "##======STARTING WORKFLOW======##" | tee -a "$log_file"
+echo -e "\n##============Launching workflow============##" | tee -a "$log_file"
 date | tee -a "$log_file"
 echo "##=============================##" | tee -a "$log_file"
 
 # Print the Snakemake execution mode
 if [[ "$mode" == "e" ]]; then
-    echo -e "Executing workflow: 'up_illumina_wf.snakefile' with ${cores} cores and ${mem_gb} GB memory. Proccesed output will be stored in ${output_folder} " | tee -a "$log_file"
+    echo -e "Executing workflow: 'up_illumina_wf.snakefile' with ${cores} cores and ${mem_gb} GB memory. \nProccesed output will be stored in ${output_folder} " | tee -a "$log_file"
 else
     echo -e "Performing dry run (-n): 'up_illumina_wf.snakefile' with ${cores} cores and ${mem_gb} GB memory" | tee -a "$log_file"
 fi
@@ -98,6 +98,6 @@ fi
 ${usr_time} -o "$log_file" --append $snakemake_cmd
 
 # Print end information to log file
-echo "##======WORKFLOW COMPLETED======##" | tee -a "$log_file"
+echo -e "##======Workflow sucessfully completed======##" | tee -a "$log_file"
 date | tee -a "$log_file"
-echo -e "##=============================##\n" | tee -a "$log_file"
+echo -e "##==========================================##\n" | tee -a "$log_file"
