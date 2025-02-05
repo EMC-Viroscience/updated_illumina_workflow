@@ -1,7 +1,7 @@
 # Illumina Workflow for Metagenomic Data Processing  
 
 
-This repository contains a Snakemake workflow for processing Illumina sequencing data, optimized and validated for metagenomics. The end-to-end workflow, `up_illumina_wf_snakefile.smk`, includes steps to process raw reads into taxonomic annotation: quality control, human read filtering, de novo assembly, annotation, and result summarization. The Snakefile is designed to be resource-aware, modular, and easy to configure, with outputs dynamically organized based on the current date.  
+This repository contains a Snakemake workflow for processing Illumina sequencing data, optimized and validated for metagenomics. The end-to-end workflow, `up_illumina_wf.snakefile`, includes steps to process raw reads into taxonomic annotation: quality control, human read filtering, de novo assembly, annotation, and result summarization. The Snakefile is designed to be resource-aware, modular, and easy to configure, with outputs dynamically organized based on the current date.  
 
 
 ## Workflow breakdown: from raw reads to annotation
@@ -64,7 +64,7 @@ This repository contains a Snakemake workflow for processing Illumina sequencing
 
 4. **Running the workflow with minimal settings:**  
     ```
-    snakemake -s up_illumina_wf_snakefile.smk --cores 8
+    snakemake -s up_illumina_wf.snakefile --cores 8
     ```
     The pipeline will start using 8 cores, and the results will be saved in a directory named `processed_ddmmyy` (default naming format based on the current date).  
 
@@ -79,7 +79,7 @@ updated_illumina_workflow/
 │   └── runXYZ/
 │       ├── sampleA_R1_001.fastq.gz
 │       └── sampleA_R2_001.fastq.gz
-├── up_illumina_wf_snakefile.smk      # snakefile
+├── up_illumina_wf.snakefile      # snakefile
 ├── environment.yaml                  # dependencies for conda installation
 ├── execute-and-log.sh                # wrapper
 ├── README.md                         # this file
@@ -116,7 +116,7 @@ updated_illumina_workflow/
 Alternatively, launch the workflow by specifying the number of cores, memory, and other parameters.  
 
 ```bash
-snakemake -s up_illumina_wf_snakefile.smk \
+snakemake -s up_illumina_wf.snakefile \
     --resources mem_gb=192 \
     --cores 24 \
     --rerun-triggers mtime \
@@ -136,7 +136,7 @@ snakemake -s up_illumina_wf_snakefile.smk \
 - **Configuration**: Pass configuration variable flag to snakemake - to set a custom output folder:
 
   ```
-  snakemake -s up_illumina_wf_snakefile.smk \
+  snakemake -s up_illumina_wf.snakefile \
       --config OUTPUT_FOLDER="processed_mydate" \
       --cores 16
   ```  
