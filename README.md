@@ -142,14 +142,15 @@ snakemake -s up_illumina_wf.snakefile \
   ```  
 
 
-### Resource Allocation and Priorities
+### Resource Allocation and Priorities  
   - Threads and Memory: Each rule in the Snakefile can dynamically allocate threads and memory.  
   - Adjusting Resources: Modify the `threads:` or `resources:` directives inside each rule for finer control.
-  - Adjusting Priorities: Some rules include **priority settings** to optimize execution order. This ensures that computationally intensive steps start earlier, preventing bottlenecks and reducing total runtime. **Example Priority Assignments**:  
-    - **`blastx_assembled`**  → **Priority 2** - As the most time-consuming step, it is executed first.  
-    - **`assemble_filtered`** → **Priority 1** - This step runs with higher priority than all other jobs.
+  - Adjusting Priorities: Some rules have **priority settings** to optimize execution order. This ensures that computationally intensive steps start earlier, preventing bottlenecks and minimizing total runtime. A higher priority means the rule is executed first.
+  **Example Priority Assignments**:  
+    - **`blastx_assembled`**  → **Priority 2** - The most time-consuming step, so it runs first.  
+    - **`assemble_filtered`** → **Priority 1** - Runs before all other jobs except `blastx_assembled`.
 
-> **Note:** By default, rules have priority 0. Raise or lower priority levels as needed.  
+    > **Note:** By default, all rules have a priority of 0. Adjust priority levels as needed to optimize execution.
 
 
 ## Acknowledgements  
