@@ -112,8 +112,8 @@ updated_illumina_workflow/
 
 ## Advanced usage and configuration
 
-**To run the workflow with logging, use** `execute-and-log.sh`, which automates the process.
-Alternatively, launch the workflow by specifying the number of cores, memory, and other parameters.
+**To run the workflow with logging, use** `execute-and-log.sh`, which automates the process.  
+Alternatively, launch the workflow by specifying the number of cores, memory, and other parameters.  
 
 ```bash
 snakemake -s up_illumina_wf_snakefile.smk \
@@ -124,24 +124,22 @@ snakemake -s up_illumina_wf_snakefile.smk \
     --latency-wait 30 \
     --max-jobs-per-second 2 \
     --max-status-checks-per-second 4
-```
-- **Default output**: If no custom folder is specified (in config file or passing flag to snakemake), default output directory is `processed_ddmmyy`.  
+```  
+
 - **`cores`**: Use up to 24 CPU cores
 - **`resources mem_gb`**: Allocate 192 GB memory (roughly 8× the number of cores).  
 - **`rerun-triggers`**: Force a rerun if file modification times indicate that inputs have changed.  
 - **`rerun-incomplete`**: Rerun incomplete jobs from previous executions.
 - **`latency-wait`**: Waits up to 30 seconds for input files (useful for network filesystems).
-- **Job submission and status check rate**: Limit new job submission rate (`max-jobs-per-second`) to 2 new jobs per second; limit job status check rate (`max-status-checks-per-second`) to 4 checks per second
-
-**Configuration**: The workflow reads configuration variables from flags passed to Snakemake. For example, specify a custom output folder:
+- **Job submission and status check rate**: Limit new job submission rate (`max-jobs-per-second`) to 2 new jobs per second; limit job status check rate (`max-status-checks-per-second`) to 4 checks per second  
+- **Default output**: If no custom folder is specified by passing the `config` flag to snakemake, default output directory is `processed_ddmmyy`.
+- **Configuration**: Pass configuration variable to Snakemake as flag; to set a custom output folder:
 
 ```
 snakemake -s up_illumina_wf_snakefile.smk \
     --config OUTPUT_FOLDER="processed_mydate" \
     --cores 16
-```
-
-
+```  
 
 
 ### Resource Allocation and Priorities
@@ -156,9 +154,9 @@ snakemake -s up_illumina_wf_snakefile.smk \
 
 ## Acknowledgements  
 
-**Adapted by:** [Divyae Kishore Prasad](https://github.com/divprasad/) (Jul'24–Feb'25)  
+**Adapted by:** [Div Prasad](https://github.com/divprasad/) (Jul'24–Feb'25)  
 **Original Workflow by:** Nathalie Worp & David Nieuwenhuijse  
 
-This Snakemake pipeline builds upon the original work by **Nathalie Worp** and **David Nieuwenhuijse**, incorporating updates, enhancements, and additional features.  
+This Snakemake pipeline is an adaptation of the original work by **Nathalie Worp** and **David Nieuwenhuijse**, incorporating updates, enhancements, and additional features.  
 
-A special thanks to **Nathalie Worp** and **David Nieuwenhuijse** for their contributions; their work laid the foundational for this repository.  
+A special thanks to **Nathalie Worp** and **David Nieuwenhuijse** for their contributions; their work laid the foundation for this repository.  
