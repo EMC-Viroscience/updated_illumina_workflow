@@ -218,6 +218,8 @@ rule merge_results:
 
 
 # create links to all the "completed*" classification tables per sample, to a central location per run
+# Skip the first line, then prepend "{run}_{sample}|" to each remaining line
+# Remove temp files associated with the sample
 rule store_completed_annotation_files:
     input:
         f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/completed_{{sample}}_annotation.tsv"
@@ -229,14 +231,11 @@ rule store_completed_annotation_files:
         """
         set -euo pipefail
 
-        # Skip the first line, then prepend "{run}_{sample}|" to each remaining line
         sed "1!s/^/{wildcards.run}_{wildcards.sample}|/" {input} > {output.renamed_completed}
 
-        # Copy files for easier access
         cp {input} {output.ln_completed}
         cp {output.renamed_completed} {output.ln_renamed_completed}
 
-        # Remove temp files associated with the sample
         rm -f "{wildcards.run}_{wildcards.sample}"*
         rm -f "{wildcards.sample}"*
 

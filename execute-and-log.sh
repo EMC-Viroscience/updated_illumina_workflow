@@ -60,9 +60,9 @@ if [[ "$custom_folder_name" != "NO" ]]; then
 fi
 
 # Print start information to the console and log file
-echo -e "\n##============Launching workflow============##" | tee -a "$log_file"
-date | tee -a "$log_file"
-echo "##=============================##" | tee -a "$log_file"
+echo -e "\n##============Launching workflow==============##" | tee -a "$log_file"
+printf "\t%s\n" "$(date)"  | tee -a "$log_file"
+echo -e "##============================================##\n" | tee -a "$log_file"
 
 # Print the Snakemake execution mode
 if [[ "$mode" == "e" ]]; then
@@ -98,6 +98,6 @@ fi
 ${usr_time} -o "$log_file" --append $snakemake_cmd
 
 # Print end information to log file
-echo -e "##======Workflow sucessfully completed======##" | tee -a "$log_file"
-date | tee -a "$log_file"
-echo -e "##==========================================##\n" | tee -a "$log_file"
+echo -e "\n##======Workflow sucessfully completed========##" | tee -a "$log_file"
+printf "\t%s\n" "$(date)"  | tee -a "$log_file"
+echo -e "##============================================##\n" | tee -a "$log_file"
