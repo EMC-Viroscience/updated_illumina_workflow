@@ -1,11 +1,5 @@
-# Illumina Workflow for Metagenomic Data Processing
+# Illumina Workflow for Metagenomic Data Processing  
 
-**Adapted by:** [Divyae Kishore Prasad](https://github.com/divprasad/)  
-**Original workflow by:** Nathalie Worp and David Nieuwenhuisje  
-**Development period:** Jul'24–Feb'25  
-
-
-## Overview
 
 This repository contains a Snakemake workflow for processing Illumina sequencing data, optimized and validated for metagenomics. The end-to-end workflow, `up_illumina_wf_snakefile.smk`, includes steps to process raw reads into taxonomic annotation: quality control, human read filtering, de novo assembly, annotation, and result summarization. The Snakefile is designed to be resource-aware, modular, and easy to configure, with outputs dynamically organized based on the current date.  
 
@@ -160,5 +154,11 @@ snakemake -s up_illumina_wf_snakefile.smk \
 > **Note:** By default, rules have priority 0. Raise or lower priority levels as needed.  
 
 
-## Acknowledgements
-Special thanks to **Nathalie Worp** and **David Nieuwenhuijse** for developing the original Illumina workflow, which was further adapted here.
+## Acknowledgements  
+
+**Adapted by:** [Divyae Kishore Prasad](https://github.com/divprasad/) (Jul'24–Feb'25)  
+**Original Workflow by:** Nathalie Worp & David Nieuwenhuijse  
+
+This Snakemake pipeline builds upon the original work by **Nathalie Worp** and **David Nieuwenhuijse**, incorporating updates, enhancements, and additional features.  
+
+A special thanks to **Nathalie Worp** and **David Nieuwenhuijse** for their contributions; their work laid the foundational for this repository.  
