@@ -103,10 +103,15 @@ updated_illumina_workflow/
 ### Output directories & files
 
 1. **`dedup_qc/`** Contains the **QC**ed and **deduplicated** reads and fastp reports.  
+
 2. **`filtered/`** Holds the **human-filtered** reads after removing host contamination.  
+
 3. **`assembly/contigs.fasta`** Final **assembled** contigs from metaSPAdes.  
+
 4. **`{sample}_annotation.tsv`** DIAMOND BLASTX annotation results for each assembled contig.  
+
 5. **`mappings/{sample}_mappings.bam`** BAM files with reads mapped back to contigs.  
+
 6. **`summary/`** Summary tables of coverage, read statistics, and merged annotation data for quick reference.  
 
 
