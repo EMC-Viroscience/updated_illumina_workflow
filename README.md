@@ -126,20 +126,20 @@ snakemake -s up_illumina_wf_snakefile.smk \
     --max-status-checks-per-second 4
 ```  
 
+- **Default output**: If no custom folder is specified by passing the `config` flag to snakemake, default output directory is `processed_ddmmyy`.
 - **`cores`**: Use up to 24 CPU cores
 - **`resources mem_gb`**: Allocate 192 GB memory (roughly 8× the number of cores).  
 - **`rerun-triggers`**: Force a rerun if file modification times indicate that inputs have changed.  
 - **`rerun-incomplete`**: Rerun incomplete jobs from previous executions.
 - **`latency-wait`**: Waits up to 30 seconds for input files (useful for network filesystems).
 - **Job submission and status check rate**: Limit new job submission rate (`max-jobs-per-second`) to 2 new jobs per second; limit job status check rate (`max-status-checks-per-second`) to 4 checks per second  
-- **Default output**: If no custom folder is specified by passing the `config` flag to snakemake, default output directory is `processed_ddmmyy`.
-- **Configuration**: Pass configuration variable to Snakemake as flag; to set a custom output folder:
+- **Configuration**: Pass configuration variable flag to snakemake - to set a custom output folder:
 
-```
-snakemake -s up_illumina_wf_snakefile.smk \
-    --config OUTPUT_FOLDER="processed_mydate" \
-    --cores 16
-```  
+  ```
+  snakemake -s up_illumina_wf_snakefile.smk \
+      --config OUTPUT_FOLDER="processed_mydate" \
+      --cores 16
+  ```  
 
 
 ### Resource Allocation and Priorities
