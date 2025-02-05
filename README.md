@@ -1,7 +1,7 @@
 # Illumina Workflow for Metagenomic Data Processing  
 
 
-This repository contains a Snakemake workflow for processing Illumina sequencing data, optimized and validated for metagenomics. The end-to-end workflow, `up_illumina_wf.snakefile`, includes steps to process raw reads into taxonomic annotation: quality control, human read filtering, de novo assembly, annotation, and result summarization. The Snakefile is designed to be resource-aware, modular, and easy to configure, with outputs dynamically organized based on the current date.  
+This repository contains a `snakemake` workflow for processing Illumina sequencing data, optimized and validated for metagenomics. The end-to-end workflow, `up_illumina_wf.snakefile`, includes steps to process raw reads into taxonomic annotation: quality control, human read filtering, de novo assembly, annotation, and result summarization. The Snakefile is designed to be resource-aware, modular, and easy to configure, with outputs dynamically organized based on the current date.  
 
 
 ## Workflow breakdown: from raw reads to annotation
@@ -126,14 +126,14 @@ snakemake -s up_illumina_wf.snakefile \
     --max-status-checks-per-second 4
 ```  
 
-- **Default output**: If no custom folder is specified by passing the `config` flag to snakemake, default output directory is `processed_ddmmyy`.
+- **Default output**: If no custom folder is specified by passing the `config` flag to `snakemake`, default output directory is `processed_ddmmyy`.
 - **`cores`**: Use up to 24 CPU cores
 - **`resources mem_gb`**: Allocate 192 GB memory (roughly 8× the number of cores).  
 - **`rerun-triggers`**: Force a rerun if file modification times indicate that inputs have changed.  
 - **`rerun-incomplete`**: Rerun incomplete jobs from previous executions.
 - **`latency-wait`**: Waits up to 30 seconds for input files (useful for network filesystems).
 - **Job submission and status check rate**: Limit new job submission rate (`max-jobs-per-second`) to 2 new jobs per second; limit job status check rate (`max-status-checks-per-second`) to 4 checks per second  
-- **Configuration**: Pass configuration variable flag to snakemake - to set a custom output folder:
+- **Configuration**: Pass configuration variable flag to `snakemake` - to set a custom output folder:
 
   ```
   snakemake -s up_illumina_wf.snakefile \
@@ -157,6 +157,6 @@ snakemake -s up_illumina_wf.snakefile \
 **Adapted by:** [Div Prasad](https://github.com/divprasad/) (Jul'24–Feb'25)  
 **Original Workflow by:** Nathalie Worp & David Nieuwenhuijse  
 
-This Snakemake pipeline is an adaptation of the original work by **Nathalie Worp** and **David Nieuwenhuijse**, incorporating updates, enhancements, and additional features.  
+This `snakemake` pipeline is an adaptation of the original work by **Nathalie Worp** and **David Nieuwenhuijse**, incorporating updates, enhancements, and additional features.  
 
 A special thanks to **Nathalie Worp** and **David Nieuwenhuijse** for their contributions; their work laid the foundation for this repository.  
