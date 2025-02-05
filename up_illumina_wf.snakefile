@@ -20,7 +20,6 @@ rule all:
         expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/summary/{{run}}_{{sample}}_read_processing_stats_clean.tsv", zip, run=RUNS, sample=SAMPLES),
         expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/renamed_completed_{{sample}}_annotation.tsv", zip, run=RUNS, sample=SAMPLES),
         expand(f"{OUTPUT_FOLDER}/{{run}}/annotations/renamed/renamed_completed_{{sample}}_annotation.tsv", zip, run=RUNS, sample=SAMPLES)
-        #expand(f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/.announced", run=RUNS, sample=SAMPLES) # optionally, include a dummy file created by announce_completed_annotation
 
 rule hardlink_raw:
     input:
@@ -33,7 +32,7 @@ rule hardlink_raw:
         """
         set -euo pipefail
 
-        # create hard links so as to back trace what input files have been processed
+        # create hard links so to help back trace which input files have been processed
         ln $(realpath {input.R1}) {output.R1}
         ln $(realpath {input.R2}) {output.R2}
         """
@@ -63,6 +62,11 @@ rule QC_after_dedup:
         -h {OUTPUT_FOLDER}/{wildcards.run}/{wildcards.sample}/dedup_qc/{wildcards.run}_{wildcards.sample}_qc_report.html
         """
 
+# -aY . Y is use softclipping -a is output all alignments
+# the output of bwa-mem2 (is exactly same as bwa) mem is a sam file that is piped directly into samtools in order to not save the memory consuming sam files. The samtools fastq option -c means the level of compression when writing .gz fastq files. The output bam/sam file contains information about mapped and unmapped reads.
+# -f 4 : then you obtain the unmapped (which are not human reads) reads and keep these.
+#-s option: If a singleton file is specified using the -s option then only paired sequences will be output for categories 1 and 2; paired meaning that for a given QNAME there are sequences for both category 1 and 2. If there is a sequence for only one of categories 1 or 2 then it will be diverted into the specified singletons file. This can be used to prepare fastq files for programs that cannot handle a mixture of paired and singleton reads.
+
 rule filter_human:
     input:
         R1 = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/dedup_qc/{{run}}_{{sample}}_R1.fastq.gz",
@@ -82,10 +86,10 @@ rule filter_human:
         bwa-mem2 mem -aY -t {threads} /mnt/scratch2/DB/HG38/bwa-mem2/GCF_000001405.26_GRCh38_genomic.fna {input.S} | \
         samtools fastq -c 3 -f 4 - | gzip > {output.S}
         """
-# -aY . Y is use softclipping -a is output all alignments
-# the output of bwa-mem2 (is exactly same as bwa) mem is a sam file that is piped directly into samtools in order to not save the memory consuming sam files. The samtools fastq option -c means the level of compression when writing .gz fastq files. The output bam/sam file contains information about mapped and unmapped reads.
-# -f 4 : then you obtain the unmapped (which are not human reads) reads and keep these.
-#-s option: If a singleton file is specified using the -s option then only paired sequences will be output for categories 1 and 2; paired meaning that for a given QNAME there are sequences for both category 1 and 2. If there is a sequence for only one of categories 1 or 2 then it will be diverted into the specified singletons file. This can be used to prepare fastq files for programs that cannot handle a mixture of paired and singleton reads.
+
+#de novo assembly of contigs
+#file with forward paired-end reads + file with reverse paired end reads
+# -s file with unpaired reads
 
 rule assemble_filtered:
     priority: 1
@@ -111,13 +115,12 @@ rule assemble_filtered:
         -2 {input.R2} \
         -s {input.S}
 
-        # Append the filename to the beginning of each contig
         sed "s/^>/>{wildcards.run}_{wildcards.sample}|/" {output.assembled_contigs} > {output.renamed_contigs}
         """
+        # Append the filename to the beginning of each contig
 
-#de novo assembly of contigs
-#file with forward paired-end reads + file with reverse paired end reads
-# -s file with unpaired reads
+# tantan: identify low-complexity regions in the sequences.
+# Mask these regions (make them ignored in alignment) while leaving the regions visible in the sequence for reference.
 
 rule blastx_assembled:
     priority: 2
@@ -138,8 +141,6 @@ rule blastx_assembled:
         --tmpdir /dev/shm --evalue 10-5 --max-target-seqs 50 --soft-masking tantan \
         --threads {threads} -c1 -b15.0 --fast
         """
-# tantan: identify low-complexity regions in the sequences.
-# Mask these regions (make them ignored in alignment) while leaving the regions visible in the sequence for reference.
 
 # map reads back to the assembled contigs; needed to calculate the depth per position, mean coverage per contig etc
 rule map_reads_to_contigs:
@@ -164,6 +165,10 @@ rule map_reads_to_contigs:
         samtools merge {output.bam} {params.tmp_paired} {params.tmp_singlets}
         """
 
+# -b: output in de bam format, -F2052 Do not output alignments with any bits set in INT present in the FLAG field. INT = 2052 means that alignments that are not mapped are not outputted.
+# samtools depth: Computes the depth at each position or region. -a outputs all positions (including those with zero depth) -d
+# -d 0: read at most 0 reads per input file. This means figures greater than 0 may be reported in the output. Setting this limit reduces the amount of memory and time needed to process regions with very high coverage. Passing zero for this option sets it to the highest possible value, effectively removing the depth limit.
+
 rule create_coverage_file:
     input:
         f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/mappings/{{sample}}_mappings.bam"
@@ -175,10 +180,8 @@ rule create_coverage_file:
         set -euo pipefail
         samtools view -bF2052 {input} | samtools depth -a -d 0 - > {output}
         """
-# -b: output in de bam format, -F2052 Do not output alignments with any bits set in INT present in the FLAG field. INT = 2052 means that alignments that are not mapped are not outputted.
-# samtools depth: Computes the depth at each position or region. -a outputs all positions (including those with zero depth) -d
-# -d 0: read at most 0 reads per input file. This means figures greater than 0 may be reported in the output. Setting this limit reduces the amount of memory and time needed to process regions with very high coverage. Passing zero for this option sets it to the highest possible value, effectively removing the depth limit.
 
+#, do not output unmapped alignments and print the first and third field to output
 rule create_readmap_file:
     input:
         f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/mappings/{{sample}}_mappings.bam"
@@ -189,7 +192,7 @@ rule create_readmap_file:
         set -euo pipefail
         samtools view -F2052 {input} | cut -f1,3 > {output}
         """
-#, do not output unmapped alignments and print the first and third field to output
+
 
 rule stat_mapped_files:
     input:
@@ -214,21 +217,6 @@ rule merge_results:
         "./merge_results.R"
 
 
-# rule announce_completed_annotation:
-#     input:
-#         completed = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/completed_{{sample}}_annotation.tsv"
-#     output:
-#         announced = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/.announced"
-#         announce_all_samples = f"{OUTPUT_FOLDER}/annouce_completion.log"
-#     run:
-#         from datetime import datetime
-#         date_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#         with open(output.announce_all_samples, "a") as logf:
-#             logf.write(f"Sample {input.completed} classification completed at {date_str}")
-#         # create a dummy file to signal completion
-#         with open(output.announced, "w") as f:
-#             f.write("Announced\n")
-
 # create links to all the "completed*" classification tables per sample, to a central location per run
 rule store_completed_annotation_files:
     input:
@@ -241,21 +229,22 @@ rule store_completed_annotation_files:
         """
         set -euo pipefail
 
-        # ```sed "1 ! s/^/``` skip the first line, and then insert at the beginning of each line
+        # Skip the first line, then prepend "{run}_{sample}|" to each remaining line
         sed "1!s/^/{wildcards.run}_{wildcards.sample}|/" {input} > {output.renamed_completed}
 
-        # # Copy files for easier access
+        # Copy files for easier access
         cp {input} {output.ln_completed}
         cp {output.renamed_completed} {output.ln_renamed_completed}
+
+        # Remove temp files associated with the sample
+        rm -f "{wildcards.run}_{wildcards.sample}"*
+        rm -f "{wildcards.sample}"*
+
+        """
 
         # # For easier access, create hard links instead of copying files
         # ln $(realpath {input}) {output.ln_completed}
         # ln $(realpath {output.renamed_completed}) {output.ln_renamed_completed}
-
-        # Remove temp files associated with the sample
-        rm -f {wildcards.run}_{wildcards.sample}*
-        rm -f {wildcards.sample}*
-        """
 
 
 rule seqkit_stat:
@@ -284,9 +273,8 @@ rule seqkit_stat:
 
         sed 's/,//g' | sed 's/  */ /g' {output.combined_stats} \
         > {output.clean_combined_stats}
-
+        """
         # clean_combined_stats essentially removes left trailing white spaces,
         # replaces tabs with single space (" ")
         # and removes the commas for various numbers
         # this helps to easily handle the `clean_combined_stats` for downstream analysis
-        """
