@@ -1,12 +1,11 @@
-# adapted by Divyae Kishore Prasad, written between July-October 2024
-# updated the "illumina workflow" developed by Nathalie Worp and David Nieuwenhuijse
+# adapted by Div Prasad, written between Jul'24 - Feb'25
+# updated the illumina workflow developed by Nathalie Worp and David Nieuwenhuijse
 
 import multiprocessing
 import datetime
 
 # Define the output folder dynamically based on current day and month.
 OUTPUT_FOLDER = config.get("OUTPUT_FOLDER", f"processed_{datetime.datetime.now().strftime('%d%m%y')}")
-MIN_CONTIG_LEN = config.get("MIN_CONTIG_LEN", 250)
 
 # Get the total number of cores specified when launching snakemake
 total_cores = workflow.cores
@@ -97,10 +96,8 @@ rule assemble_filtered:
     output:
         assembled_contigs    = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/contigs.fasta",
         renamed_contigs      = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/{{run}}_{{sample}}_contigs.fasta"
-        #fil_renamed_contigs  = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly/fil_{{run}}_{{sample}}_contigs.fasta"
     params:
         spades_folder = f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/assembly"
-        min_len = MIN_CONTIG_LEN
     threads: max(16, round(total_cores / 4))
     shell:
         """
@@ -116,16 +113,6 @@ rule assemble_filtered:
 
         # Append the filename to the beginning of each contig
         sed "s/^>/>{wildcards.run}_{wildcards.sample}|/" {output.assembled_contigs} > {output.renamed_contigs}
-
-        # Convert the output to single-line FASTA format
-        python multiL_fasta_2singleL.py {output.renamed_contigs}
-        mv {output.renamed_contigs}_SL {output.renamed_contigs}
-
-        # # Filter sequences longer than the specified minimum length
-        # seqkit seq -g -m {params.min_len} {output.renamed_contigs} > {output.fil_renamed_contigs}
-        # # Convert the filtered output to single-line FASTA format
-        # python multiL_fasta_2singleL.py {output.fil_renamed_contigs}
-        # mv {output.fil_renamed_contigs}_SL {output.fil_renamed_contigs}
         """
 
 #de novo assembly of contigs
@@ -224,7 +211,7 @@ rule merge_results:
     output:
         f"{OUTPUT_FOLDER}/{{run}}/{{sample}}/completed_{{sample}}_annotation.tsv"
     script:
-        "/mnt/scratch2/ww_virome_capture_longitudinal/merge_results.R"
+        "./merge_results.R"
 
 
 # rule announce_completed_annotation:

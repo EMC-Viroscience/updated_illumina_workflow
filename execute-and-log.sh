@@ -31,21 +31,40 @@ log_file="logging_${var_date_time}"
 # Remove any previous logs (optional, uncomment if needed)
 # rm -rf logging_*
 
-# Prompt user for number of CPU cores, with a default value of 16
+# Prompt user for number of CPU cores, with a default value of 24
 read -p "Enter number of cores (default 16): " cores
 cores=${cores:-24}
 
-# Prompt user for memory in GB, with a default value of 128
+# Prompt user for memory in GB, with a default value of 192
 read -p "Enter memory in GB for resources (default 128): " mem_gb
 mem_gb=${mem_gb:-192}
+
+# Prompt user for Snakemake mode, default is dry run (-n)
+read -p "Enter mode (default: dry run [n], execute [e]): " mode
+mode=${mode:-n}
+
+# Prompt user for custom output folder, default is NO (NO)
+read -p "Provide custom output folder name? (default: do not use custom folder [NO], use custom folder name [provide name]): " custom_folder_name
+custom_folder_name=${custom_folder_name:-NO}
+
+# Set output folder name if custom folder is provided
+if [[ "$custom_folder_name" != "NO" ]]; then
+    log_file="logging_${custom_folder_name}"
+fi
+
 
 # Print start information to the console and log file
 echo "##======STARTING WORKFLOW======##" | tee -a "$log_file"
 date | tee -a "$log_file"
 echo "##=============================##" | tee -a "$log_file"
 
-# Inform the user about the Snakemake execution
-echo "Running 'up_illumina_wf_snakefile.smk' with ${cores} cores and ${mem_gb} GB memory" | tee -a "$log_file"
+
+# Inform the user about the Snakemake execution mode
+if [[ "$mode" == "e" ]]; then
+    echo "Executing workflow: 'up_illumina_wf_snakefile.smk' with ${cores} cores and ${mem_gb} GB memory" | tee -a "$log_file"
+else
+    echo "Performing dry run (-n): 'up_illumina_wf_snakefile.smk' with ${cores} cores and ${mem_gb} GB memory" | tee -a "$log_file"
+fi
 
 # Define /usr/bin/time command to track execution time
 usr_time="/usr/bin/time"
@@ -54,25 +73,43 @@ usr_time="/usr/bin/time"
 # -n flag is for dry run (doesn't execute the workflow, but to check if errors in DAG)
 # once dry run jobs make sense, remove -n flag
 
-${usr_time} -o "$log_file" --append \
-    snakemake -n -s up_illumina_wf_snakefile.smk \
+# ${usr_time} -o "$log_file" --append \
+#     snakemake -n -s up_illumina_wf_snakefile.smk \
+#     --resources mem_gb=${mem_gb} \
+#     --cores ${cores} \
+#     --rerun-triggers mtime \
+#     --rerun-incomplete \
+#     --latency-wait 30 \
+#     --max-jobs-per-second 2 \
+#     --max-status-checks-per-second 4
+#
+
+# Set Snakemake command options
+snakemake_cmd="snakemake -s up_illumina_wf_snakefile.smk \
     --resources mem_gb=${mem_gb} \
     --cores ${cores} \
     --rerun-triggers mtime \
     --rerun-incomplete \
     --latency-wait 30 \
     --max-jobs-per-second 2 \
-    --max-status-checks-per-second 4
+    --max-status-checks-per-second 4"
 
-# ========================
-# optinal CONFIGURATIONS
-# ========================
-# --config OUTPUT_FOLDER="processed_mychoice" \
-  # Specify the workflow file, else by default, Snakemake will set the output directory as "processed_ddmmyy"
-# --config MIN_CONTIG_LEN="300"
-  # If this config is not passed, the default is 250
+# Append -n flag if mode is dry run
+if [[ "$mode" != "e" ]]; then
+    snakemake_cmd+=" -n"
+fi
+
+# Set output folder name if custom folder is provided
+if [[ "$custom_folder_name" != "NO" ]]; then
+    snakemake_cmd+=" --config OUTPUT_FOLDER=$custom_folder_name"
+fi
+
+
+# Execute Snakemake
+${usr_time} -o "$log_file" --append $snakemake_cmd
+
 
 # Print end information to log file
 echo "##======WORKFLOW COMPLETED======##" | tee -a "$log_file"
 date | tee -a "$log_file"
-echo "##=============================##" | tee -a "$log_file"
+echo -e "##=============================##\n" | tee -a "$log_file"
