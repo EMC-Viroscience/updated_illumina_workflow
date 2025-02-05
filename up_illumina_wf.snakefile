@@ -270,7 +270,7 @@ rule seqkit_stat:
         awk 'FNR==1 && NR!=1 {{next}}{{print}}' \
         > {output.combined_stats}
 
-        sed 's/,//g' | sed 's/  */ /g' {output.combined_stats} \
+        sed 's/,//g' {output.combined_stats} | sed 's/  */ /g'  \
         > {output.clean_combined_stats}
         """
         # clean_combined_stats essentially removes left trailing white spaces,
