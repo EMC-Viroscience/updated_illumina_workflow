@@ -28,14 +28,14 @@ This repository contains a `snakemake` workflow for processing Illumina sequenci
 
 6. **Mapping & statistics**  
    - Maps reads back to the assembled contigs (with `bwa-mem2` + `samtools`) and uses [seqkit](https://bioinf.shenwei.me/seqkit/) for read-count statistics.  
-   - `map_reads_to_contigs`, statistics & merging:  Generates coverage information, creates BAM files.
+   - `map_reads_to_contigs`: Generates BAM files, creates coverage files, and mapping statistics.
 
 7. **Merge results and organization**  
-   - `merge_results` merges coverage and annotation results into summary tables.
+   - `merge_results`: Merges coverage and annotation results into summary tables.
    - `store_completed_annotation_files`: Creates renamed, centrally linked annotation for easier downstream analysis. It renames `completed_{sample}_annotation.tsv` files, links them in a central `annotations/` folder, and removes temporary files.
 
 8. **Rule prioritization**  
-   - Certain rules, such as blastx_assembled and assemble_filtered, have assigned priorities to optimize scheduling and execution.  
+   - Certain rules, such as `blastx_assembled` and `assemble_filtered`, have assigned priorities to optimize scheduling and execution.  
 
 
 ## Installation and quick start
