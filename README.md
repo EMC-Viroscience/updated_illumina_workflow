@@ -11,7 +11,7 @@ This repository contains a `snakemake` workflow for processing Illumina sequenci
    - `hardlink_raw`: Hard-links or copies raw FASTQ files from `raw_data/`. The dynamically generated folder ensures easy data management.
 
 2. **Quality control & deduplication**  
-   - Uses [fastp](https://github.com/OpenGene/fastp) to perform both quality trimming and deduplication in a single run.  
+   - Performs adapter detection, quality trimming, and read deduplication in a single step using [fastp](https://github.com/OpenGene/fastp).  
    - `QC_after_dedup`: Generates cleaned, deduplicated reads, and provides an HTML/JSON report detailing QC metrics.
 
 3. **Human read filtering**  
